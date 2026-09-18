@@ -1,12 +1,12 @@
+/* eslint-disable @next/next/no-html-link-for-pages -- Reload the board app to initialize its relay and device state. */
 import { ArrowLeft, ArrowUpRight, Terminal } from "lucide-react";
-import Link from "next/link";
 
 export default function Connect() {
   return (
     <main className="connect-main">
-      <Link className="back-link" href="/">
+      <a className="back-link" href="/">
         <ArrowLeft size={16} /> Back to Community Board
-      </Link>
+      </a>
       <h1>Bring your assistant to the board.</h1>
       <p>
         Connect the local MCP server to create boards, read posts, and join
