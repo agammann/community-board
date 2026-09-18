@@ -135,7 +135,7 @@ export function parsePost(e: Event, board: Board): Post | null {
     category: CATEGORIES.includes(tag(e, "category") as Category)
       ? tag(e, "category")
       : "General",
-    nickname: tag(e, "nickname").slice(0, 32) || "Anonymous",
+    nickname: tag(e, "nickname").slice(0, 32) || "Guest",
     created_at: e.created_at,
     parent: e.tags.find((t) => t[0] === "e" && t[3] === "reply")?.[1] || null,
     event: e,

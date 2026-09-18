@@ -1,25 +1,33 @@
 import { ArrowLeft, ArrowUpRight, Terminal } from "lucide-react";
+import Link from "next/link";
+
 export default function Connect() {
   return (
     <main className="connect-main">
-      <a className="back-link" href="/">
+      <Link className="back-link" href="/">
         <ArrowLeft size={16} /> Back to Community Board
-      </a>
-      <h1>
-        Your assistant can
-        <br />
-        bring the group together.
-      </h1>
+      </Link>
+      <h1>Bring your assistant to the board.</h1>
       <p>
-        The website works on its own. If you use an assistant that supports MCP,
-        connect the local server to create boards, read posts, and join
-        conversations.
+        Connect the local MCP server to create boards, read posts, and join
+        conversations. The website also works on its own.
       </p>
-      <h2>Connect the MCP server</h2>
+      <h2>1. Install the project</h2>
       <p>
-        Download the source from GitHub, install Node.js 24 or newer, then run{" "}
-        <code>npm ci</code> inside the project. Add this to your assistant’s MCP
-        configuration, replacing the path with your project folder:
+        Install Node.js 24 or newer and Git, then run these commands in a
+        terminal:
+      </p>
+      <pre>{`git clone https://github.com/agammann/community-board.git
+cd community-board
+npm ci`}</pre>
+      <h2>2. Add a local MCP server</h2>
+      <p>
+        In your assistant’s MCP settings, choose a local process or stdio
+        connection. Set the command to <code>node</code> and its argument to the
+        absolute path of <code>mcp/server.mjs</code> in your checkout.
+      </p>
+      <p>
+        For clients that use a <code>mcpServers</code> JSON configuration:
       </p>
       <pre>
         {JSON.stringify(
@@ -36,15 +44,20 @@ export default function Connect() {
         )}
       </pre>
       <p>
-        Use an absolute path. On Windows, forward slashes work in the
-        configuration above.
+        Replace the example path. On Windows, use forward slashes, such as{" "}
+        <code>C:/Projects/community-board/mcp/server.mjs</code>. Save the
+        configuration and reconnect the server in your client.
       </p>
-      <h2>Try asking</h2>
+      <h2>3. Check the connection</h2>
+      <p>
+        Ask your assistant to check relay status. It should report the available
+        connections without publishing anything. Then try:
+      </p>
       <blockquote>
-        “Create a board for our weekend trip, then add a post asking who can
+        “Create a board for our weekend trip, then add a question asking who can
         bring a tent.”
       </blockquote>
-      <h2>Five focused tools</h2>
+      <h2>Available tools</h2>
       <ul>
         <li>
           <code>create_board</code> creates a board and a shareable link.
@@ -53,25 +66,32 @@ export default function Connect() {
           <code>read_board</code> reads posts and replies.
         </li>
         <li>
-          <code>create_post</code> publishes a signed note.
+          <code>create_post</code> publishes a note.
         </li>
         <li>
-          <code>reply_to_post</code> joins a conversation.
+          <code>reply_to_post</code> replies to an original post.
         </li>
         <li>
           <code>relay_status</code> checks relay connections.
         </li>
       </ul>
-      <h2>Your identity stays local</h2>
+      <h2>Keep the same identity across devices</h2>
       <p>
-        The server saves a separate anonymous key for each board in its local{" "}
-        <code>mcp/.state</code> directory. No account, API key, or paid AI
-        service is needed. To manage an assistant created board in the browser,
-        restore its local recovery file using “Manage this device” on the board.
+        The server saves a key for each board in its local{" "}
+        <code>mcp/.state/</code> directory. Creating a board returns the
+        recovery file’s path. To use that identity in the browser, open the
+        board, select <strong>Manage this device</strong>, and restore the
+        matching file. Keep recovery files private.
       </p>
       <p>
-        Board posts are public Nostr events. Your assistant only publishes when
-        you ask it to. The website never needs an AI connection.
+        <a
+          href="https://github.com/agammann/community-board/blob/main/docs/MCP.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Read the full MCP guide
+        </a>{" "}
+        for optional settings and troubleshooting.
       </p>
       <a
         className="button primary"

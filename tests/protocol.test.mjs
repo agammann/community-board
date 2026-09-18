@@ -1,14 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { verifyEvent, finalizeEvent } from "nostr-tools/pure";
+import { verifyEvent } from "nostr-tools/pure";
 import {
   secret,
   makeBoard,
   parseBoard,
   makePost,
   parsePost,
-  visiblePosts,
-  getPublicKey,
 } from "../lib/nostr-board.ts";
 const owner = secret(),
   guest = secret(),

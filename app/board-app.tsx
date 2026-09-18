@@ -1,4 +1,6 @@
 "use client";
+/* Full document navigation intentionally resets the per-board relay connection and device state. */
+/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-location-assign-relative-destination */
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -152,6 +154,8 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     pool.current = newPool();
     let active = true;
     try {
+      // Restore browser-only history after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRecent(JSON.parse(localStorage.getItem("cb_recent") || "[]"));
     } catch {}
     if (boardId) {
@@ -304,7 +308,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
           {
             board: location.origin + `/b/${board.id}`,
             key: hex(key.current),
-            note: "Private recovery key. Keep this file to restore your anonymous identity on this board.",
+            note: "Private recovery key. Keep this file to restore your identity on this board.",
           },
           null,
           2,
@@ -360,7 +364,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
               <Plus size={16} /> New board
             </a>
           ) : (
-            <span className="header-note">No account. Just a link.</span>
+            <span className="header-note">A space for your people.</span>
           )}
         </nav>
       </header>
@@ -389,7 +393,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
               <p>
                 Your group. Your conversations.
                 <br />
-                <strong>No accounts needed.</strong>
+                <strong>Bring everyone together.</strong>
               </p>
             </div>
           </section>
@@ -456,7 +460,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
                 )}
               </button>
               <p className="form-note">
-                <Globe2 size={14} /> Public on Nostr. No email or signup.
+                <Globe2 size={14} /> Share your link when you’re ready.
               </p>
             </form>
             <div className="panel-foot">
@@ -665,11 +669,11 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
                   <div className="identity-summary">
                     <KeyRound size={18} />
                     <div>
-                      <strong>Your anonymous identity</strong>
+                      <strong>This device</strong>
                       <p>
                         {owner
                           ? "Board creator on this device."
-                          : "No profile needed to participate."}
+                          : "Your key is saved in this browser."}
                       </p>
                       <button
                         className="text-button"
@@ -772,7 +776,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
               maxLength={32}
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder="Anonymous"
+              placeholder="Guest"
             />
             {error && (
               <p className="error" role="alert">
@@ -839,7 +843,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               maxLength={32}
-              placeholder="Anonymous"
+              placeholder="Guest"
             />
             {error && (
               <p className="error" role="alert">
@@ -859,7 +863,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
         <DialogContent className="cb-dialog">
           <DialogTitle>Bring your people in.</DialogTitle>
           <DialogDescription>
-            Anyone with this link can join the conversation. No account needed.
+            Anyone with this link can join the conversation.
           </DialogDescription>
           <label htmlFor="share-link">Board link</label>
           <input
@@ -893,8 +897,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
         <DialogContent className="cb-dialog">
           <DialogTitle>Your identity, on this device.</DialogTitle>
           <DialogDescription>
-            A random key lets you manage your posts. This board has its own key,
-            with no email or profile attached.
+            Each board has its own signing key saved in this browser.
           </DialogDescription>
           <p>
             Save a recovery file to keep access if you change devices or clear
@@ -937,16 +940,11 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
             </li>
             <li>
               <strong>Make yourself at home.</strong>
-              <p>
-                No signup. A random identity is saved on this device for each
-                board.
-              </p>
+              <p>Write a post, ask a question, or join a conversation.</p>
             </li>
           </ol>
           <p className="help-note">
             Posts are public Nostr events. Relays distribute and store them.
-            Anonymous here means no real identity is required, not that your
-            network activity is hidden.
           </p>
           <a className="button full" href="/connect">
             <Terminal size={17} /> Use with an assistant
