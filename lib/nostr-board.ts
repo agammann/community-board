@@ -35,11 +35,35 @@ export type Post = {
 export const hex = (b: Uint8Array) =>
   Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 export function secret(value?: string) {
-  if (!value) return generateSecretKey();
-  if (!/^[a-f0-9]{64}$/i.test(value)) throw Error("Invalid identity key.");
+  if (value === undefined) return generateSecretKey();
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/i.test(value))
+    throw Error("Invalid identity key.");
   const k = Uint8Array.from(value.match(/../g)!, (x) => parseInt(x, 16));
   getPublicKey(k);
   return k;
+}
+export function parseRecovery(value: unknown, boardId: string) {
+  if (!value || typeof value !== "object")
+    throw Error("That is not a recovery file.");
+  const data = value as { board?: unknown; key?: unknown };
+  if (
+    typeof data.key !== "string" ||
+    !data.key ||
+    typeof data.board !== "string"
+  )
+    throw Error("That recovery file is missing a board link or valid key.");
+  let url: URL;
+  try {
+    url = new URL(data.board);
+  } catch {
+    throw Error("That recovery file has an invalid board link.");
+  }
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.pathname !== `/b/${boardId}`
+  )
+    throw Error("This recovery file belongs to another board.");
+  return secret(data.key);
 }
 export { getPublicKey };
 export function tag(e: Event, name: string) {
@@ -142,13 +166,18 @@ export function parsePost(e: Event, board: Board): Post | null {
   };
 }
 export function visiblePosts(events: Event[], board: Board) {
-  return events
+  return mergeEvents([], events)
     .map((e) => parsePost(e, board))
     .filter((p): p is Post => !!p)
     .sort((a, b) => b.created_at - a.created_at || b.id.localeCompare(a.id));
 }
+export function mergeEvents(existing: Event[], incoming: Event[]) {
+  return Array.from(
+    new Map([...existing, ...incoming].map((e) => [e.id, e])).values(),
+  ).sort((a, b) => b.created_at - a.created_at || b.id.localeCompare(a.id));
+}
 export function newPool() {
-  return new SimplePool({ enableReconnect: false });
+  return new SimplePool({ enableReconnect: true });
 }
 export async function publish(pool: SimplePool, event: Event) {
   if (!verifyEvent(event)) throw Error("This post could not be signed.");
@@ -165,7 +194,15 @@ export async function publish(pool: SimplePool, event: Event) {
   return { id: event.id, accepted };
 }
 export async function query(pool: SimplePool, filter: Filter) {
-  return pool.querySync(RELAYS, filter, { maxWait: 7000 });
+  const events = await pool.querySync(RELAYS, filter, { maxWait: 7000 });
+  if (
+    !events.length &&
+    !Array.from(pool.listConnectionStatus().values()).some(Boolean)
+  )
+    throw Error(
+      "The relays are unreachable. Your loaded posts are still here. Check your connection and try again.",
+    );
+  return events;
 }
 export async function loadBoard(pool: SimplePool, id: string) {
   if (!/^[a-f0-9]{64}$/.test(id)) throw Error("That board link is not valid.");

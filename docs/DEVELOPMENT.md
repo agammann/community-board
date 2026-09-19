@@ -41,11 +41,15 @@ Keep the server running while using the site. Stop it with Ctrl+C.
 
 Tests generate temporary keys and test files, but do not publish to public relays. Testing posting manually in the website or through MCP does publish real events, including when the website runs on localhost.
 
+The resilience tests cover invalid recovery files, partial and duplicate feed responses, offline reads, relay write failures, and live subscription recovery after a local WebSocket server disconnects. The reconnect test takes about ten seconds and needs permission to listen on a loopback port.
+
 ## How it is organized
 
 The web app and MCP server share `lib/nostr-board.ts`. This module builds and signs events, connects to relays, and interprets the board's thread format. The website signs in the browser. The MCP process signs locally using keys from its private state directory.
 
 Configured relays are listed in `RELAYS` near the top of that module. Publishing succeeds after at least one relay acknowledges the event. Connection status does not guarantee that a relay will accept a new write. See [the protocol reference](PROTOCOL.md) for tags, bounds, and pagination behavior.
+
+Live subscriptions reconnect automatically after established connections drop. Refreshing merges relay results with posts already loaded in the current page, so a partial response does not erase the conversation. If all relays are unreachable, the page keeps those posts and reports the connection failure.
 
 Browser storage contains device keys and recently visited boards. Published content is retrieved from Nostr. The app requires no server database or application secrets.
 

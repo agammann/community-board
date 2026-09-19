@@ -17,6 +17,7 @@ import {
   loadPosts,
   CATEGORIES,
   RELAYS,
+  parseRecovery,
 } from "../lib/nostr-board.ts";
 
 const base =
@@ -38,7 +39,7 @@ const idSchema = z.string().regex(/^[a-f0-9]{64}$/);
 async function keyFor(id) {
   const file = path.join(stateDir, `${id}.json`);
   try {
-    return secret(JSON.parse(await readFile(file, "utf8")).key);
+    return parseRecovery(JSON.parse(await readFile(file, "utf8")), id);
   } catch (e) {
     if (e.code !== "ENOENT") throw e;
     const k = secret();

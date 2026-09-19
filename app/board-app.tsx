@@ -37,6 +37,8 @@ import {
   loadBoard,
   loadPosts,
   visiblePosts,
+  mergeEvents,
+  parseRecovery,
   RELAYS,
 } from "../lib/nostr-board";
 import type { Board, Post } from "../lib/nostr-board";
@@ -139,9 +141,8 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
         b,
         older && Number.isFinite(oldest) ? oldest - 1 : undefined,
       );
-      events.current = older
-        ? [...events.current, ...result.events]
-        : result.events;
+      // A relay can return a partial snapshot while live events arrive.
+      events.current = mergeEvents(events.current, result.events);
       setPosts(visiblePosts(events.current, b));
       setCanLoadMore(result.events.length >= 200);
     } catch (e) {
@@ -205,7 +206,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
       {
         onevent(e) {
           if (!events.current.some((x) => x.id === e.id)) {
-            events.current = [e, ...events.current].slice(0, 1000);
+            events.current = mergeEvents(events.current, [e]).slice(0, 1000);
             setPosts(visiblePosts(events.current, board));
           }
         },
@@ -324,12 +325,12 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     notify("Recovery file downloaded. Keep it private.");
   }
   async function restore(file: File) {
+    setError("");
     try {
       if (file.size > 4096) throw Error("That is not a recovery file.");
       const data = JSON.parse(await file.text());
-      const k = secret(data.key);
-      if (!board || data.board.split("/").pop() !== board.id)
-        throw Error("This recovery file belongs to another board.");
+      if (!board) throw Error("Open a board before restoring a recovery file.");
+      const k = parseRecovery(data, board.id);
       localStorage.setItem(`cb_key_${board.id}`, hex(k));
       key.current = k;
       setPubkey(getPublicKey(k));
@@ -558,7 +559,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
                   <RefreshCw className={loading ? "spin" : ""} size={18} />
                 </button>
               </div>
-              {error && !compose && !selected && (
+              {error && !compose && !selected && !identityOpen && (
                 <p className="error" role="alert">
                   {error}
                 </p>
@@ -912,7 +913,9 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
               type="file"
               accept="application/json,.json"
               onChange={(e) => {
-                if (e.target.files?.[0]) void restore(e.target.files[0]);
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void restore(file);
               }}
             />
           </label>
