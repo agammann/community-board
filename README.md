@@ -14,6 +14,8 @@ A lightweight group noticeboard built on Nostr, with a mobile friendly website a
 
 Use General, Question, Offer, or Event to organize posts. Nicknames are optional. New posts arrive live, and the connection panel shows which relays are reachable.
 
+Reply drafts stay with their conversation while the page is open. Switching threads keeps each draft separate, and a rejected post keeps its text for retry. Drafts are not saved across a page reload or navigation.
+
 ## Run locally
 
 Install [Node.js 24 or newer](https://nodejs.org/en/download) and [Git](https://git-scm.com/downloads), then run these commands in a terminal:
@@ -35,6 +37,8 @@ npm start
 ```
 
 `check` runs lint, tests, TypeScript checks, and the production build. `start` serves that built version locally; it does not publish a website. See [development instructions](docs/DEVELOPMENT.md) for individual commands, deployment notes, and troubleshooting.
+
+See the [October 2 verification record](docs/VERIFICATION-2026-10-02.md) for the actual browser and MCP checks and their limits.
 
 ## Connect an assistant
 

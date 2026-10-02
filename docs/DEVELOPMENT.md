@@ -43,6 +43,8 @@ Tests generate temporary keys and test files, but do not publish to public relay
 
 The resilience tests cover invalid recovery files, partial and duplicate feed responses, offline reads, relay write failures, and live subscription recovery after a local WebSocket server disconnects. The reconnect test takes about ten seconds and needs permission to listen on a loopback port.
 
+Reply-draft tests cover separate conversations and delayed acknowledgments: sending one reply clears only its submitted text, preserving drafts in other threads and edits made while the send was pending. These drafts live in page memory. See the [dated verification record](VERIFICATION-2026-10-02.md) for the rendered app and stdio MCP checks against an isolated relay.
+
 ## How it is organized
 
 The web app and MCP server share `lib/nostr-board.ts`. This module builds and signs events, connects to relays, and interprets the board's thread format. The website signs in the browser. The MCP process signs locally using keys from its private state directory.
