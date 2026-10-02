@@ -43,6 +43,8 @@ import {
 } from "../lib/nostr-board";
 import type { Board, Post } from "../lib/nostr-board";
 import type { Event } from "nostr-tools";
+import { clearSentReplyDraft, updateReplyDraft } from "../lib/reply-drafts";
+import type { ReplyDrafts } from "../lib/reply-drafts";
 
 type Recent = { id: string; name: string };
 function remember(b: Board) {
@@ -119,10 +121,11 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     [body, setBody] = useState(""),
     [nickname, setNickname] = useState(""),
     [postCategory, setPostCategory] = useState("General"),
-    [reply, setReply] = useState(""),
+    [replyDrafts, setReplyDrafts] = useState<ReplyDrafts>({}),
     [copied, setCopied] = useState(false),
     [canLoadMore, setCanLoadMore] = useState(false),
     [relayConnections, setRelayConnections] = useState<string[]>([]);
+  const reply = selected ? replyDrafts[selected.id] || "" : "";
   const notify = (s: string) => {
     setToast(s);
     setTimeout(() => setToast(""), 5000);
@@ -272,6 +275,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
     if (!board || !key.current || !selected) return;
+    const postId = selected.id;
     setBusy(true);
     setError("");
     try {
@@ -283,7 +287,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
       if (!events.current.some((x) => x.id === event.id))
         events.current.unshift(event);
       setPosts(visiblePosts(events.current, board));
-      setReply("");
+      setReplyDrafts((drafts) => clearSentReplyDraft(drafts, postId, reply));
       notify("Reply posted.");
     } catch (e) {
       setError((e as Error).message);
@@ -830,7 +834,12 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
             <textarea
               id="reply"
               value={reply}
-              onChange={(e) => setReply(e.target.value)}
+              onChange={(e) => {
+                if (!selected) return;
+                const postId = selected.id;
+                const value = e.target.value;
+                setReplyDrafts((drafts) => updateReplyDraft(drafts, postId, value));
+              }}
               maxLength={4000}
               rows={3}
               required
