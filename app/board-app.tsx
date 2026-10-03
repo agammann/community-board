@@ -1,6 +1,5 @@
 "use client";
 /* Full document navigation intentionally resets the per-board relay connection and device state. */
-/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-location-assign-relative-destination */
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
