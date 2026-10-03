@@ -33,7 +33,8 @@ Keep the server running while using the site. Stop it with Ctrl+C.
 | `npm test`          | Run protocol and MCP contract tests                     |
 | `npm run typecheck` | Check TypeScript without emitting files                 |
 | `npm run build`     | Produce the deployment files in `dist/`                 |
-| `npm run check`     | Run lint, tests, type checking, and the build           |
+| `npm run check`     | Run lint, tests, type checking, the build, and audit     |
+| `npm run audit:dependencies` | Audit the locked dependency tree using npm          |
 | `npm start`         | Preview the existing production build locally           |
 | `npm run mcp`       | Run the stdio MCP server                                |
 
@@ -57,7 +58,9 @@ Browser storage contains device keys and recently visited boards. Published cont
 
 ## Hosting and forks
 
-The public website is built with Vinext for Cloudflare Workers. The `build/` and `scripts/` folders support that build, including the official Sites deployment. They are infrastructure code, separate from the product's Nostr logic.
+The website uses React and Vite with a small Cloudflare Worker. The `build/` and `scripts/` folders support that build, including the official Sites deployment. They are infrastructure code, separate from the product's Nostr logic.
+
+The browser entry points render the board and assistant setup. Only `/b/<one segment>` receives the shared board shell; the original URL remains available to the existing device and recovery logic. Static assets use the hosting layer's canonical paths, including `/connect/`. Unknown paths do not receive a global app fallback. The app has no server API, server renderer, or account sign-in route.
 
 `.openai/hosting.json` contains the official site's project ID. A normal clone can develop, test, and preview without changing it. **Register your own project and replace that ID before publishing a fork through Sites.** Do not use the official project ID for your own deployment.
 
@@ -67,7 +70,7 @@ The checkout's `.sites-runtime/` directory is ignored. Clean clones default to t
 
 ## Updating dependencies
 
-Use npm consistently. Commit `package.json` and `package-lock.json` together after changes, then run `npm run check`. Do not commit `node_modules`, `dist`, local state, or recovery files.
+Use npm consistently. Commit `package.json` and `package-lock.json` together after changes, then run `npm run check`. The final audit queries the npm registry and fails on any reported advisory; a successful audit is a dated dependency check, not a guarantee about all application behavior. Do not commit `node_modules`, `dist`, local state, or recovery files.
 
 ## Troubleshooting
 
