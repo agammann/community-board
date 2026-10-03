@@ -38,7 +38,7 @@ npm start
 
 `check` runs lint, tests, TypeScript checks, the production build, and a dependency audit. The audit needs access to the npm registry. `start` serves that built version locally; it does not publish a website. See [development instructions](docs/DEVELOPMENT.md) for individual commands, deployment notes, and troubleshooting.
 
-See the [October 2 verification record](docs/VERIFICATION-2026-10-02.md) for the actual browser and MCP checks and their limits.
+See the [October 3 verification record](docs/VERIFICATION-2026-10-03.md) for the direct Vite build, saved-identity upgrade, browser and MCP checks and their limits. The [October 2 record](docs/VERIFICATION-2026-10-02.md) preserves the earlier published-site findings.
 
 ## Connect an assistant
 
