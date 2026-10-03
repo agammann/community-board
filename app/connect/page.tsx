@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-html-link-for-pages -- Reload the board app to initialize its relay and device state. */
 import { ArrowLeft, ArrowUpRight, Terminal } from "lucide-react";
 
 export default function Connect() {

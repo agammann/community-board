@@ -82,29 +82,29 @@ if [[ -n "${seed_cache}" && -d "${seed_cache}" ]]; then
   fi
 fi
 
-locked_vinext_output="$({ node --input-type=module - "${SITES_PROJECT_ROOT}/package-lock.json" <<'NODE'
+locked_vite_output="$({ node --input-type=module - "${SITES_PROJECT_ROOT}/package-lock.json" <<'NODE'
 import { readFile } from "node:fs/promises";
 
 const lock = JSON.parse(await readFile(process.argv[2], "utf8"));
-const vinext = lock.packages?.["node_modules/vinext"];
-if (!vinext?.resolved || !vinext?.integrity) {
-  throw new Error("package-lock.json does not contain a resolved, integrity-pinned vinext tarball");
+const vite = lock.packages?.["node_modules/vite"];
+if (!vite?.resolved || !vite?.integrity) {
+  throw new Error("package-lock.json does not contain a resolved, integrity-pinned vite tarball");
 }
-console.log(vinext.resolved);
-console.log(vinext.integrity);
+console.log(vite.resolved);
+console.log(vite.integrity);
 NODE
 })" || {
-  echo "Could not read the integrity-pinned vinext tarball from package-lock.json." >&2
+  echo "Could not read the integrity-pinned vite tarball from package-lock.json." >&2
   exit 65
 }
-mapfile -t locked_vinext <<<"${locked_vinext_output}"
-if [[ "${#locked_vinext[@]}" -ne 2 ]]; then
-  echo "Expected exactly one Vinext URL and integrity value from package-lock.json." >&2
+mapfile -t locked_vite <<<"${locked_vite_output}"
+if [[ "${#locked_vite[@]}" -ne 2 ]]; then
+  echo "Expected exactly one Vite URL and integrity value from package-lock.json." >&2
   exit 65
 fi
 
-locked_tarball="${locked_vinext[0]}"
-locked_integrity="${locked_vinext[1]}"
+locked_tarball="${locked_vite[0]}"
+locked_integrity="${locked_vite[1]}"
 
 if [[ "${use_seeded_cache}" == "0" ]]; then
   registry="$(npm --prefix "${SITES_PROJECT_ROOT}" --workspaces=false config get registry)"
@@ -124,10 +124,10 @@ NODE
   }
 
   preflight_dir="${runtime_root}/preflight"
-  preflight_tarball="${preflight_dir}/vinext.tgz"
+  preflight_tarball="${preflight_dir}/vite.tgz"
   mkdir -p "${preflight_dir}"
 
-  echo "[sites] downloading the complete locked vinext tarball"
+  echo "[sites] downloading the complete locked vite tarball"
   curl \
     --fail \
     --location \
@@ -139,7 +139,7 @@ NODE
     --output "${preflight_tarball}" \
     "${preflight_url}"
 
-  echo "[sites] verifying locked vinext tarball integrity"
+  echo "[sites] verifying locked vite tarball integrity"
   node --input-type=module - "${preflight_tarball}" "${locked_integrity}" <<'NODE'
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -152,7 +152,7 @@ const actual = createHash(algorithm)
   .update(await readFile(process.argv[2]))
   .digest("base64");
 if (actual !== expected) {
-  throw new Error(`vinext tarball integrity mismatch for ${algorithm}`);
+  throw new Error(`vite tarball integrity mismatch for ${algorithm}`);
 }
 NODE
   echo "[sites] network and integrity preflight passed"
@@ -172,9 +172,9 @@ timeout \
   "${SITES_INSTALL_TIMEOUT:-8m}" \
   npm "${npm_ci_args[@]}"
 
-vinext="${SITES_PROJECT_ROOT}/node_modules/.bin/vinext"
-if [[ ! -x "${vinext}" ]]; then
-  echo "npm ci exited successfully but node_modules/.bin/vinext is unavailable." >&2
+vite="${SITES_PROJECT_ROOT}/node_modules/.bin/vite"
+if [[ ! -x "${vite}" ]]; then
+  echo "npm ci exited successfully but node_modules/.bin/vite is unavailable." >&2
   exit 69
 fi
 
@@ -208,4 +208,4 @@ if (reportPath) {
   }
 }
 NODE
-echo "[sites] npm ci passed and vinext is available"
+echo "[sites] npm ci passed and vite is available"
