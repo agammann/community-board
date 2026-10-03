@@ -36,7 +36,7 @@ npm run check
 npm start
 ```
 
-`check` runs lint, tests, TypeScript checks, and the production build. `start` serves that built version locally; it does not publish a website. See [development instructions](docs/DEVELOPMENT.md) for individual commands, deployment notes, and troubleshooting.
+`check` runs lint, tests, TypeScript checks, the production build, and a dependency audit. The audit needs access to the npm registry. `start` serves that built version locally; it does not publish a website. See [development instructions](docs/DEVELOPMENT.md) for individual commands, deployment notes, and troubleshooting.
 
 See the [October 2 verification record](docs/VERIFICATION-2026-10-02.md) for the actual browser and MCP checks and their limits.
 
@@ -64,7 +64,8 @@ Posts live on Nostr relays. Board links are public invitations. This version foc
 
 | Path                    | Purpose                                |
 | ----------------------- | -------------------------------------- |
-| `app/`                  | Website routes, interface, and styles  |
+| `app/`                  | Website interface and styles           |
+| `client/` and `worker/` | Browser entry points and route handling |
 | `lib/nostr-board.ts`    | Shared signing, relay, and event logic |
 | `mcp/server.mjs`        | Local MCP server                       |
 | `tests/`                | Protocol and MCP contract checks       |
@@ -75,4 +76,4 @@ Posts live on Nostr relays. Board links are public invitations. This version foc
 
 [Coracle](https://github.com/coracle-social/coracle) informed the relay visibility and key recovery experience. [Jumble](https://github.com/CodyTseng/jumble) informed the simple feed layout. This is an independent implementation.
 
-Built with [nostr-tools](https://github.com/nbd-wtf/nostr-tools), the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk), [Vinext](https://github.com/cloudflare/vinext), React, Radix Dialog, and Lucide. Retained build tooling includes its upstream license.
+Built with [nostr-tools](https://github.com/nbd-wtf/nostr-tools), the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk), [Vite](https://vite.dev/), React, Radix Dialog, and Lucide. Retained build tooling includes its upstream license.
