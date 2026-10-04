@@ -1,0 +1,261 @@
+{
+  "status": "completed_with_recorded_limits",
+  "startedAtUtc": "2026-10-04T06:00:23.346Z",
+  "finishedAtUtc": "2026-10-04T06:10:33.763Z",
+  "deployment": {
+    "url": "https://community-board.alx21.chatgpt.site",
+    "siteVersion": 6,
+    "siteSource": "719c6f2c0de30808c65a52bbfdd6eae81b0a1087",
+    "githubSource": "d069945e182795b13b98d784352627b7560d8501",
+    "githubMerge": "63e861bb46b28312785affd80f656126097421f2"
+  },
+  "scope": "One board and one original post through the normal published UI; fresh immediate and at-least-ten-minute readback. At least one relay must return both exact events and their board relation in each phase.",
+  "publicEvents": {
+    "board": {
+      "kind": 1,
+      "created_at": 1791093626,
+      "tags": [
+        [
+          "t",
+          "community-board"
+        ],
+        [
+          "board",
+          "v1"
+        ],
+        [
+          "subject",
+          "Community Board verification - 2026-10-03"
+        ],
+        [
+          "relay",
+          "wss://nos.lol"
+        ],
+        [
+          "relay",
+          "wss://relay.primal.net"
+        ],
+        [
+          "relay",
+          "wss://relay.ditto.pub"
+        ]
+      ],
+      "content": "Public verification board for Community Board. Two test events only; no replies or action requested. This content may remain on public relays.",
+      "pubkey": "568bf46d648a40327ce893fef5ea299f9561dce55678b789eed7f20948199cf1",
+      "id": "9e78102dda066fc8abfb19b61214c1c367c777906fb0efd7a91752f8e91d5895",
+      "sig": "2ff80ad9886152047781132748948db58791d086bc6588bf87b029752b179d1239357928a1d8a24b4c4425f2237855c21c961278f0a7aa15a55737fcd36f42ba"
+    },
+    "post": {
+      "kind": 1,
+      "created_at": 1791093628,
+      "tags": [
+        [
+          "e",
+          "9e78102dda066fc8abfb19b61214c1c367c777906fb0efd7a91752f8e91d5895",
+          "wss://nos.lol",
+          "root",
+          "568bf46d648a40327ce893fef5ea299f9561dce55678b789eed7f20948199cf1"
+        ],
+        [
+          "p",
+          "568bf46d648a40327ce893fef5ea299f9561dce55678b789eed7f20948199cf1"
+        ],
+        [
+          "t",
+          "community-board"
+        ],
+        [
+          "category",
+          "General"
+        ]
+      ],
+      "content": "Verification note: checking that this signed post can be read after reconnecting and again after ten minutes. No response or action requested.",
+      "pubkey": "568bf46d648a40327ce893fef5ea299f9561dce55678b789eed7f20948199cf1",
+      "id": "e7677525e64d7e48cf0cac822a28132ede1feb79dd995aab3b29fa8c92342295",
+      "sig": "fd24e1ec5168eb279622cd9453f632855d42d9552a8d04a43de7199daff85692ba5d50e79501b315a34ffaa82886e3d7b4a93b299078d0d589394c1cba80892b"
+    }
+  },
+  "eventDeliveries": 6,
+  "retries": 0,
+  "acknowledgments": [
+    {
+      "relay": "wss://relay.ditto.pub/",
+      "id": "9e78102dda066fc8abfb19b61214c1c367c777906fb0efd7a91752f8e91d5895",
+      "accepted": true,
+      "observedAt": "2026-10-04T06:00:26.964Z",
+      "reason": ""
+    },
+    {
+      "relay": "wss://nos.lol/",
+      "id": "9e78102dda066fc8abfb19b61214c1c367c777906fb0efd7a91752f8e91d5895",
+      "accepted": true,
+      "observedAt": "2026-10-04T06:00:27.262Z",
+      "reason": ""
+    },
+    {
+      "relay": "wss://relay.primal.net/",
+      "id": "9e78102dda066fc8abfb19b61214c1c367c777906fb0efd7a91752f8e91d5895",
+      "accepted": true,
+      "observedAt": "2026-10-04T06:00:27.374Z",
+      "reason": ""
+    },
+    {
+      "relay": "wss://relay.primal.net/",
+      "id": "e7677525e64d7e48cf0cac822a28132ede1feb79dd995aab3b29fa8c92342295",
+      "accepted": true,
+      "observedAt": "2026-10-04T06:00:28.820Z",
+      "reason": ""
+    },
+    {
+      "relay": "wss://nos.lol/",
+      "id": "e7677525e64d7e48cf0cac822a28132ede1feb79dd995aab3b29fa8c92342295",
+      "accepted": true,
+      "observedAt": "2026-10-04T06:00:28.853Z",
+      "reason": ""
+    },
+    {
+      "relay": "wss://relay.ditto.pub/",
+      "id": "e7677525e64d7e48cf0cac822a28132ede1feb79dd995aab3b29fa8c92342295",
+      "accepted": true,
+      "observedAt": "2026-10-04T06:00:28.862Z",
+      "reason": ""
+    }
+  ],
+  "publisherClosedAt": "2026-10-04T06:00:28.977Z",
+  "lastObservedPublicationAt": "2026-10-04T06:00:28.659Z",
+  "readbacks": [
+    {
+      "name": "immediate",
+      "rows": [
+        {
+          "relay": "wss://nos.lol/",
+          "phase": "immediate",
+          "started": "2026-10-04T06:00:28.982Z",
+          "elapsedSinceLastPublicationMs": 323,
+          "boardFound": true,
+          "postFound": false,
+          "relationFound": false,
+          "signaturesAndBytesValid": true,
+          "eose": [
+            "fixture-ids",
+            "fixture-relation"
+          ],
+          "error": null,
+          "finished": "2026-10-04T06:00:29.908Z",
+          "passed": false
+        },
+        {
+          "relay": "wss://relay.primal.net/",
+          "phase": "immediate",
+          "started": "2026-10-04T06:00:28.989Z",
+          "elapsedSinceLastPublicationMs": 330,
+          "boardFound": true,
+          "postFound": true,
+          "relationFound": true,
+          "signaturesAndBytesValid": true,
+          "eose": [
+            "fixture-ids",
+            "fixture-relation"
+          ],
+          "error": null,
+          "finished": "2026-10-04T06:00:29.772Z",
+          "passed": true
+        },
+        {
+          "relay": "wss://relay.ditto.pub/",
+          "phase": "immediate",
+          "started": "2026-10-04T06:00:28.991Z",
+          "elapsedSinceLastPublicationMs": 332,
+          "boardFound": true,
+          "postFound": false,
+          "relationFound": false,
+          "signaturesAndBytesValid": true,
+          "eose": [
+            "fixture-ids",
+            "fixture-relation"
+          ],
+          "error": null,
+          "finished": "2026-10-04T06:00:29.329Z",
+          "passed": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "ten-minute",
+      "rows": [
+        {
+          "relay": "wss://nos.lol/",
+          "phase": "ten-minute",
+          "started": "2026-10-04T06:10:28.665Z",
+          "elapsedSinceLastPublicationMs": 600006,
+          "boardFound": true,
+          "postFound": false,
+          "relationFound": false,
+          "signaturesAndBytesValid": true,
+          "eose": [
+            "fixture-ids",
+            "fixture-relation"
+          ],
+          "error": null,
+          "finished": "2026-10-04T06:10:29.412Z",
+          "passed": false
+        },
+        {
+          "relay": "wss://relay.primal.net/",
+          "phase": "ten-minute",
+          "started": "2026-10-04T06:10:28.667Z",
+          "elapsedSinceLastPublicationMs": 600008,
+          "boardFound": true,
+          "postFound": true,
+          "relationFound": true,
+          "signaturesAndBytesValid": true,
+          "eose": [
+            "fixture-ids",
+            "fixture-relation"
+          ],
+          "error": null,
+          "finished": "2026-10-04T06:10:29.447Z",
+          "passed": true
+        },
+        {
+          "relay": "wss://relay.ditto.pub/",
+          "phase": "ten-minute",
+          "started": "2026-10-04T06:10:28.667Z",
+          "elapsedSinceLastPublicationMs": 600008,
+          "boardFound": true,
+          "postFound": true,
+          "relationFound": true,
+          "signaturesAndBytesValid": true,
+          "eose": [
+            "fixture-relation",
+            "fixture-ids"
+          ],
+          "error": null,
+          "finished": "2026-10-04T06:10:29.065Z",
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "anonymousBrowserReadback": {
+    "immediate": true,
+    "tenMinute": true
+  },
+  "cleanup": {
+    "contextsClosed": true,
+    "browserProcessClosed": true,
+    "readSocketsClosed": true,
+    "runnerSettled": true,
+    "responseHandlersSettled": true
+  },
+  "privateKeyRead": false,
+  "limits": [
+    "All three relays acknowledged both events, but acknowledgment did not guarantee subsequent retrieval.",
+    "Immediate read: only relay.primal.net returned the complete board, post and relation.",
+    "Ten-minute read: relay.primal.net and relay.ditto.pub returned the complete pair and relation; nos.lol returned only the board.",
+    "This measured interval does not establish permanent retention, all-relay availability or cross-device/browser compatibility.",
+    "The approved public events may remain on relays; no deletion event was sent."
+  ]
+}
