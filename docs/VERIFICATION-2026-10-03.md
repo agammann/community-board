@@ -53,3 +53,9 @@ The publisher then closed. Fresh read-only connections requested the exact event
 The predefined requirement was acceptance and complete retrieval from at least one relay in each phase; it passed. All three application checks and cleanup checks passed, with no recorded errors, warnings or scope violations. The test did not read or export the private signing key. The [public result record](verification/public-relay-2026-10-04.json) contains the two signed public events, acknowledgments and measured per-relay results.
 
 This closes the previously untested public-write and measured-retention scope. It does not promise permanent storage or availability on every relay: `nos.lol` acknowledged the post but did not return it in either read phase. No deletion event was sent, and the approved verification content may remain public. Earlier private-test limitations and results above remain unchanged.
+
+## October 4 relay-hint follow-up
+
+At 22:04 UTC, fresh read-only connections queried the same published post alone and the board/post IDs together. All six subscriptions reached EOSE within 1.4 seconds. Primal and Ditto returned both exact signed events; nos.lol returned the board but omitted the post even when requested alone. No event was republished.
+
+New posts and replies recommend Primal in their root/parent relay hints. [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) defines that field as a recommended relay for the referenced event. All three relays remain publication and retrieval destinations, and partial refreshes continue to preserve loaded posts. This is a default interoperability hint, not a guarantee that any relay will retain every event; the earlier per-relay observations remain unchanged.

@@ -24,6 +24,13 @@ test("board and posts are valid signed plaintext Nostr events", () => {
   assert.equal(event.content, "A question");
   assert.equal(post.title, "Hello");
   assert.equal(post.category, "Question");
+  assert.deepEqual(
+    board.event.tags.filter((t) => t[0] === "relay").map((t) => t[1]),
+    ["wss://relay.primal.net", "wss://nos.lol", "wss://relay.ditto.pub"],
+  );
+  assert.deepEqual(event.tags.find((t) => t[0] === "e"), [
+    "e", board.id, "wss://relay.primal.net", "root", board.pubkey,
+  ]);
 });
 test("replies carry root, parent and participant tags", () => {
   const e = makePost(board, "A reply", owner, { parent: post });
@@ -34,6 +41,11 @@ test("replies carry root, parent and participant tags", () => {
     e.tags.some((t) => t[0] === "e" && t[1] === post.id && t[3] === "reply"),
   );
   assert.ok(e.tags.some((t) => t[0] === "p" && t[1] === post.pubkey));
+  assert.ok(verifyEvent(e));
+  assert.deepEqual(e.tags.filter((t) => t[0] === "e"), [
+    ["e", board.id, "wss://relay.primal.net", "root", board.pubkey],
+    ["e", post.id, "wss://relay.primal.net", "reply", post.pubkey],
+  ]);
 });
 test("foreign roots are excluded and content bounds apply", () => {
   const other = parseBoard(makeBoard("Other", "", stranger));

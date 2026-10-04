@@ -7,9 +7,10 @@ import {
 import { SimplePool } from "nostr-tools/pool";
 import type { Event, Filter } from "nostr-tools";
 
+// The first relay is also the recommended root/reply event hint.
 export const RELAYS = [
-  "wss://nos.lol",
   "wss://relay.primal.net",
+  "wss://nos.lol",
   "wss://relay.ditto.pub",
 ];
 export const CATEGORIES = ["General", "Question", "Offer", "Event"] as const;
