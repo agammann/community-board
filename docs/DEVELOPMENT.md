@@ -25,18 +25,22 @@ Keep the server running while using the site. Stop it with Ctrl+C.
 
 ## Commands
 
-| Command             | Purpose                                                 |
-| ------------------- | ------------------------------------------------------- |
-| `npm ci`            | Install the exact dependency versions from the lockfile |
-| `npm run dev`       | Start the development website                           |
-| `npm run lint`      | Lint application code with no warnings allowed          |
-| `npm test`          | Run protocol and MCP contract tests                     |
-| `npm run typecheck` | Check TypeScript without emitting files                 |
-| `npm run build`     | Produce the deployment files in `dist/`                 |
-| `npm run check`     | Run lint, tests, type checking, the build, and audit     |
-| `npm run audit:dependencies` | Audit the locked dependency tree using npm          |
-| `npm start`         | Preview the existing production build locally           |
-| `npm run mcp`       | Run the stdio MCP server                                |
+| Command                      | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `npm ci`                     | Install the exact dependency versions from the lockfile |
+| `npm run dev`                | Start the development website                           |
+| `npm run lint`               | Lint application code with no warnings allowed          |
+| `npm test`                   | Run protocol and MCP contract tests                     |
+| `npm run typecheck`          | Check TypeScript without emitting files                 |
+| `npm run build`              | Produce the deployment files in `dist/`                 |
+| `npm run check`              | Run lint, tests, type checking, the build, and audit    |
+| `npm run audit:dependencies` | Audit the locked dependency tree using npm              |
+| `npm start`                  | Preview the existing production build locally           |
+| `npm run mcp`                | Run the stdio MCP server                                |
+| `npm run test:e2e`           | Run the built browser journey against a private relay   |
+| `npm run test:mcp`           | Exercise all five stdio tools, restart and recovery     |
+| `npm run audit:json`         | Print the complete current npm audit as JSON            |
+| `npm run package:release`    | Package a clean committed source tree and checksums     |
 
 `npm start` requires a successful build first. Rebuild after editing source when testing the production preview. It runs a local Worker and does not deploy anything. The development website and MCP server are independent processes.
 
@@ -45,6 +49,35 @@ Tests generate temporary keys and test files, but do not publish to public relay
 The resilience tests cover invalid recovery files, partial and duplicate feed responses, offline reads, relay write failures, and live subscription recovery after a local WebSocket server disconnects. The reconnect test takes about ten seconds and needs permission to listen on a loopback port.
 
 Reply-draft tests cover separate conversations and delayed acknowledgments: sending one reply clears only its submitted text, preserving drafts in other threads and edits made while the send was pending. These drafts live in page memory. See the [dated verification record](VERIFICATION-2026-10-02.md) for the rendered app and stdio MCP checks against an isolated relay.
+
+## Browser and assistant checks
+
+After `npm ci` and `npm run build`, install the test browser and run:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+npm run test:mcp
+```
+
+On Linux, use `npx playwright install --with-deps chromium` when browser system libraries are missing. To use an existing Chrome installation, set `COMMUNITY_BOARD_BROWSER_EXECUTABLE` to its executable's absolute path. These tests use real local WebSockets and signed Nostr events; they redirect the three configured relay destinations to a private loopback relay and submit no public events. Reports and screenshots go into ignored `test-results/`. The browser check downloads a generated recovery file privately, uses it for restoration, and removes it before exit.
+
+The MCP check starts the actual server from another working directory, exercises all five tools, checks rejected writes and retries, restarts with the same local identity, rejects a recovery file for another board, and restores the exact original key. It removes its own temporary key directory afterward.
+
+## Build on the project
+
+- Add a category in `CATEGORIES` and update the protocol documentation; keep the default category and existing event tags readable.
+- Add website interactions in `app/board-app.tsx` and exercise them against the private relay before using public relays.
+- Add assistant tools in `mcp/server.mjs`, reusing the shared signing and bounds checks. Keep recovery keys in local files and avoid returning them in tool text.
+- Change hosting routes in `worker/index.ts` with a route test. Keep existing board URLs and per-board browser identities intact.
+
+Keep `RELAYS` publication/retrieval destinations separate from any assumptions about durable storage. A relay acknowledgment confirms acceptance at that time. It does not promise equal readback or permanent retention.
+
+## Source release
+
+Commit the changes before running `npm run package:release`. The packager uses only tracked source from a clean Git tree; it includes the lockfile and licenses and excludes local state, build output and test artifacts. It writes the versioned ZIP, its `.sha256` sidecar and `SHA256SUMS` into `release-artifacts/`.
+
+The verification workflow runs on Windows and Linux. Its Windows job extracts that actual source ZIP into a new folder, installs with `npm ci`, checks it and runs its browser/assistant journeys. The publication job runs only after verification of a main push, requires the same current main commit and matching tag, verifies every uploaded asset's hash and size, and publishes the complete draft. Pull requests and manual verification runs do not publish releases. Previously published versions remain unchanged; bump the version and add a changelog section for another release.
 
 ## How it is organized
 
