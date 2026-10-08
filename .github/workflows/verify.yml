@@ -3,8 +3,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: community-board-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   verify:
     strategy:
@@ -12,11 +16,81 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 24
+          node-version: 24.19.0
           cache: npm
+      - if: runner.os == 'Windows'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
       - run: npm ci
       - run: npm run check
+      - if: always()
+        shell: bash
+        run: |
+          mkdir -p reports
+          npm run audit:json --silent > reports/dependency-audit.raw.json
+      - if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - if: runner.os == 'Windows'
+        run: npx playwright install chromium
+      - run: npm run test:e2e
+      - run: npm run test:mcp
+      - if: runner.os == 'Windows'
+        run: npm run package:release
+      - if: runner.os == 'Windows'
+        run: python scripts/unpack-release.py --out ../community-board-source-consumer
+      - if: runner.os == 'Windows'
+        working-directory: ../community-board-source-consumer
+        run: npm ci
+      - if: runner.os == 'Windows'
+        working-directory: ../community-board-source-consumer
+        run: npm run check
+      - if: runner.os == 'Windows'
+        working-directory: ../community-board-source-consumer
+        run: npm run test:e2e
+      - if: runner.os == 'Windows'
+        working-directory: ../community-board-source-consumer
+        run: npm run test:mcp
+      - if: runner.os == 'Windows'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: community-board-release
+          path: release-artifacts/
+          if-no-files-found: error
+          overwrite: true
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: checks-${{ runner.os }}
+          path: |
+            test-results/
+            reports/dependency-audit.raw.json
+            ${{ runner.workspace }}/community-board-source-consumer/test-results/
+          retention-days: 7
+          overwrite: true
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: community-board-release
+          path: release-artifacts
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { default: publish } = await import(process.env.GITHUB_WORKSPACE + '/scripts/release.mjs');
+            await publish({ github, context, core });
