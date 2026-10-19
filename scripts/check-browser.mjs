@@ -1,11 +1,17 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { localRelay, isolateRelays } from "./test-support/relay.mjs";
 import { chromium } from "playwright";
-import { secret, makePost, parseBoard } from "../lib/nostr-board.ts";
-import { finalizeEvent } from "nostr-tools/pure";
+import {
+  secret,
+  hex,
+  getPublicKey,
+  makePost,
+  parseBoard,
+} from "../lib/nostr-board.ts";
+import { finalizeEvent, verifyEvent } from "nostr-tools/pure";
 const out = path.resolve("test-results/browser");
 await mkdir(out, { recursive: true });
 const processLog = [];
@@ -327,6 +333,122 @@ try {
       fullPage: true,
     });
   }
+  const fragmentContext = await browser.newContext();
+  await isolateRelays(fragmentContext, relay.url);
+  const fragmentPage = await fragmentContext.newPage();
+  fragmentPage.setDefaultTimeout(20000);
+  await fragmentPage.goto(boardURL);
+  await fragmentPage
+    .getByRole("heading", { name: "Private October QA", exact: true })
+    .waitFor();
+  const savedKey = await fragmentPage.evaluate(
+    (id) => localStorage.getItem(`cb_key_${id}`),
+    boardId,
+  );
+  assert(savedKey);
+  const savedPubkey = getPublicKey(secret(savedKey));
+  const candidate = secret();
+  const candidateHex = hex(candidate);
+  const recoveryDialog = fragmentPage.getByRole("dialog", {
+    name: "Use the identity from this recovery link?",
+  });
+  await fragmentPage.goto(`${boardURL}?view=fragment#key=${candidateHex}`);
+  await recoveryDialog.waitFor();
+  const savedBeforeSwitch = fragmentPage.waitForEvent("download");
+  await recoveryDialog
+    .getByRole("button", { name: "Save current identity" })
+    .click();
+  const currentDownload = await savedBeforeSwitch;
+  assert.equal(
+    currentDownload.suggestedFilename(),
+    "community-board-recovery.json",
+  );
+  const currentRecovery = JSON.parse(
+    await readFile(await currentDownload.path(), "utf8"),
+  );
+  assert(
+    currentRecovery.key === savedKey,
+    "Current identity backup did not match",
+  );
+  assert.equal(new URL(fragmentPage.url()).hash, "");
+  assert.equal(new URL(fragmentPage.url()).search, "?view=fragment");
+  assert(
+    (await fragmentPage.evaluate(
+      (id) => localStorage.getItem(`cb_key_${id}`),
+      boardId,
+    )) === savedKey,
+    "Unconfirmed fragment replaced the saved identity",
+  );
+  await recoveryDialog
+    .getByRole("button", { name: "Keep this device’s identity" })
+    .click();
+  await createPost(
+    fragmentPage,
+    "Identity kept",
+    "The unconfirmed fragment did not change this author.",
+  );
+  const keptEvent = [...relay.events.values()].find(
+    (event) =>
+      event.content === "The unconfirmed fragment did not change this author.",
+  );
+  assert(keptEvent && verifyEvent(keptEvent));
+  assert.equal(keptEvent.pubkey, savedPubkey);
+  for (const [index, fragment] of [
+    "#key=invalid",
+    `#key=${candidateHex}&key=${hex(secret())}`,
+  ].entries()) {
+    await fragmentPage.goto(`${boardURL}?case=${index}${fragment}`);
+    await fragmentPage
+      .getByRole("heading", { name: "Private October QA", exact: true })
+      .waitFor();
+    await fragmentPage.waitForFunction(() => location.hash === "");
+    assert.equal(new URL(fragmentPage.url()).hash, "");
+    assert.equal(await recoveryDialog.count(), 0);
+    assert(
+      (await fragmentPage.evaluate(
+        (id) => localStorage.getItem(`cb_key_${id}`),
+        boardId,
+      )) === savedKey,
+      "Invalid fragment replaced the saved identity",
+    );
+  }
+  await fragmentPage.goto(`${boardURL}#%6Bey=${candidateHex}`);
+  await recoveryDialog.waitFor();
+  await recoveryDialog
+    .getByRole("button", { name: "Use recovery identity" })
+    .click();
+  assert(
+    (await fragmentPage.evaluate(
+      (id) => localStorage.getItem(`cb_key_${id}`),
+      boardId,
+    )) === candidateHex,
+    "Confirmed recovery identity was not saved",
+  );
+  await createPost(
+    fragmentPage,
+    "Identity restored",
+    "The confirmed recovery identity signed this post.",
+  );
+  const restoredEvent = [...relay.events.values()].find(
+    (event) =>
+      event.content === "The confirmed recovery identity signed this post.",
+  );
+  assert(restoredEvent && verifyEvent(restoredEvent));
+  assert.equal(restoredEvent.pubkey, getPublicKey(candidate));
+  await fragmentPage.reload();
+  await createPost(
+    fragmentPage,
+    "Identity retained",
+    "The confirmed identity persisted across reload.",
+  );
+  const retainedEvent = [...relay.events.values()].find(
+    (event) =>
+      event.content === "The confirmed identity persisted across reload.",
+  );
+  assert(retainedEvent && verifyEvent(retainedEvent));
+  assert.equal(retainedEvent.pubkey, getPublicKey(candidate));
+  report.checks.fragmentRecoveryRequiresConfirmation = true;
+  await fragmentContext.close();
   await page.goto(base + "/connect");
   assert.match(await page.locator("h1").innerText(), /assistant/);
   assert.match(await page.locator("main").innerText(), /stdio/);
