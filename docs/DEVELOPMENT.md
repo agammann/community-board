@@ -87,7 +87,7 @@ Configured relays are listed in `RELAYS` near the top of that module. Publishing
 
 Live subscriptions reconnect automatically after established connections drop. Refreshing merges relay results with posts already loaded in the current page, so a partial response does not erase the conversation. If all relays are unreachable, the page keeps those posts and reports the connection failure.
 
-Browser storage contains device keys and recently visited boards. Published content is retrieved from Nostr. The app requires no server database or application secrets.
+Browser storage contains passphrase-encrypted per-board device keys and recently visited boards. `lib/browser-identity.ts` uses PBKDF2-SHA-256 with 600,000 iterations and a random per-board salt to derive an AES-256-GCM key, and binds ciphertext to its board ID. No passphrase or derived decrypt key is persisted. Legacy `cb_key_` values are removed only after the matching encrypted key is written and verified; a conflicting legacy value is preserved for explicit recovery. A recovery file contains a raw key and must be kept private. Published content is retrieved from Nostr. The app requires no server database or application secrets.
 
 ## Hosting and forks
 
