@@ -99,6 +99,7 @@ function Logo() {
 export default function BoardApp({ boardId }: { boardId?: string }) {
   const pool = useRef<ReturnType<typeof newPool> | null>(null);
   const key = useRef<Uint8Array | null>(null);
+  const fragmentKey = useRef<{ boardId: string; key: Uint8Array } | null>(null);
   const events = useRef<Event[]>([]);
   const [board, setBoard] = useState<Board | null>(null),
     [posts, setPosts] = useState<Post[]>([]),
@@ -115,7 +116,8 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     [selected, setSelected] = useState<Post | null>(null),
     [help, setHelp] = useState(false),
     [share, setShare] = useState(false),
-    [identityOpen, setIdentityOpen] = useState(false);
+    [identityOpen, setIdentityOpen] = useState(false),
+    [fragmentPrompt, setFragmentPrompt] = useState(false);
   const [title, setTitle] = useState(""),
     [body, setBody] = useState(""),
     [nickname, setNickname] = useState(""),
@@ -164,20 +166,38 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     if (boardId) {
       (async () => {
         try {
-          // A private recovery fragment never leaves this browser or appears in a share link.
-          const recovery = new URLSearchParams(location.hash.slice(1)).get(
+          // A recovery fragment is untrusted until this device confirms the switch.
+          const recovery = new URLSearchParams(location.hash.slice(1)).getAll(
             "key",
           );
-          if (recovery) {
-            secret(recovery);
-            localStorage.setItem(`cb_key_${boardId}`, recovery);
-            history.replaceState(null, "", location.pathname);
+          if (recovery.length) {
+            history.replaceState(
+              history.state,
+              "",
+              location.pathname + location.search,
+            );
+            if (recovery.length === 1) {
+              try {
+                fragmentKey.current = { boardId, key: secret(recovery[0]) };
+              } catch {
+                notify(
+                  "That recovery link is invalid. Your identity was kept.",
+                );
+              }
+            } else {
+              notify("That recovery link is invalid. Your identity was kept.");
+            }
           }
           key.current = identity(boardId);
           setPubkey(getPublicKey(key.current));
           const b = await loadBoard(pool.current!, boardId);
           if (!active) return;
           setBoard(b);
+          if (fragmentKey.current?.boardId === boardId) {
+            if (hex(fragmentKey.current.key) === hex(key.current))
+              fragmentKey.current = null;
+            else setFragmentPrompt(true);
+          }
           remember(b);
           await refresh(b);
         } catch (e) {
@@ -338,6 +358,23 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
       key.current = k;
       setPubkey(getPublicKey(k));
       setIdentityOpen(false);
+      notify("Your identity has been restored.");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  function dismissFragmentRecovery() {
+    fragmentKey.current = null;
+    setFragmentPrompt(false);
+  }
+  function confirmFragmentRecovery() {
+    const recovery = fragmentKey.current;
+    if (!board || !recovery || recovery.boardId !== board.id) return;
+    try {
+      localStorage.setItem(`cb_key_${board.id}`, hex(recovery.key));
+      key.current = recovery.key;
+      setPubkey(getPublicKey(recovery.key));
+      dismissFragmentRecovery();
       notify("Your identity has been restored.");
     } catch (e) {
       setError((e as Error).message);
@@ -899,6 +936,38 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
             >
               Share with an app
             </button>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={fragmentPrompt}
+        onOpenChange={(open) => {
+          if (!open) dismissFragmentRecovery();
+        }}
+      >
+        <DialogContent className="cb-dialog">
+          <DialogTitle>Use the identity from this recovery link?</DialogTitle>
+          <DialogDescription>
+            This link contains a different signing identity for this board.
+            Using it will replace the one saved on this device. Save your
+            current identity first if you want to use it again.
+          </DialogDescription>
+          <button className="button full" onClick={recovery}>
+            Save current identity
+          </button>
+          <button className="button full" onClick={dismissFragmentRecovery}>
+            Keep this device’s identity
+          </button>
+          <button
+            className="button primary full"
+            onClick={confirmFragmentRecovery}
+          >
+            Use recovery identity
+          </button>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
           )}
         </DialogContent>
       </Dialog>
