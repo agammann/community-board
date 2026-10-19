@@ -26,6 +26,7 @@ const report = {
   consoleErrors: [],
   layouts: [],
 };
+const devicePassphrase = "private-browser-test-passphrase";
 const save = () =>
   writeFile(out + "/report.json", JSON.stringify(report, null, 2));
 const close = () =>
@@ -33,6 +34,15 @@ const close = () =>
     .getByRole("dialog")
     .getByRole("button", { name: "Close", exact: true })
     .click();
+async function unlockBoard(target, passphrase = devicePassphrase, mode = "Unlock this board’s identity") {
+  const dialog = target.getByRole("dialog", { name: mode });
+  await dialog.waitFor();
+  await dialog.getByLabel("Device passphrase").fill(passphrase);
+  if (mode !== "Unlock this board’s identity")
+    await dialog.getByLabel("Confirm passphrase").fill(passphrase);
+  await dialog.getByRole("button", { name: mode === "Unlock this board’s identity" ? "Unlock identity" : "Protect identity" }).click();
+  await dialog.waitFor({ state: "hidden" });
+}
 const openThread = (title) =>
   page
     .locator(".post-card")
@@ -148,12 +158,25 @@ try {
   await page
     .getByLabel("Board name", { exact: true })
     .fill("Private October QA");
+  await page.getByLabel("Device passphrase").fill(devicePassphrase);
+  await page.getByLabel("Confirm passphrase").fill(devicePassphrase);
   await page.getByRole("button", { name: "Create board", exact: true }).click();
   await page.waitForURL(/\/b\/[a-f0-9]{64}$/);
+  await unlockBoard(page);
   await page
     .getByRole("heading", { name: "Private October QA", exact: true })
     .waitFor();
   report.checks.createBoard = true;
+  assert.equal(await page.evaluate((id) => localStorage.getItem(`cb_key_${id}`), page.url().split("/").at(-1)), null);
+  await page.reload();
+  const returnDialog = page.getByRole("dialog", { name: "Unlock this board’s identity" });
+  await returnDialog.getByLabel("Device passphrase").fill("wrong-test-passphrase");
+  await returnDialog.getByRole("button", { name: "Unlock identity" }).click();
+  await returnDialog.getByRole("alert").waitFor();
+  assert.match(await returnDialog.getByRole("alert").innerText(), /incorrect/);
+  await unlockBoard(page);
+  await page.getByText("You created this board", { exact: true }).waitFor();
+  report.checks.wrongPassphraseThenOwnerIdentityOnReturn = true;
   await createPost(
     page,
     "Picnic plans",
@@ -239,6 +262,7 @@ try {
   const guest = await guestContext.newPage();
   guest.setDefaultTimeout(20000);
   await guest.goto(boardURL);
+  await unlockBoard(guest, devicePassphrase, "Create your identity");
   await guest
     .getByRole("heading", { name: "Picnic plans", exact: true })
     .waitFor();
@@ -281,8 +305,25 @@ try {
   await guest.getByRole("dialog").waitFor({ state: "hidden" });
   await guest.getByText("You created this board", { exact: true }).waitFor();
   await guest.reload();
+  await unlockBoard(guest);
   await guest.getByText("You created this board", { exact: true }).waitFor();
   report.checks.recoveryExportValidationRestoreReload = true;
+  await guest.reload();
+  const forgotDialog = guest.getByRole("dialog", { name: "Unlock this board’s identity" });
+  await forgotDialog.getByRole("button", { name: "Forgot passphrase? Use a recovery file" }).click();
+  const resetDialog = guest.getByRole("dialog", { name: "Restore this board’s identity" });
+  const resetPassphrase = "new-private-test-passphrase";
+  await resetDialog.getByLabel("Device passphrase").fill(resetPassphrase);
+  await resetDialog.getByLabel("Confirm passphrase").fill(resetPassphrase);
+  await resetDialog.getByLabel("Recovery file").setInputFiles(out + "/private-generated-recovery.json");
+  await resetDialog.getByRole("checkbox").check();
+  await resetDialog.getByRole("button", { name: "Restore identity" }).click();
+  await resetDialog.waitFor({ state: "hidden" });
+  await guest.getByText("You created this board", { exact: true }).waitFor();
+  await guest.reload();
+  await unlockBoard(guest, resetPassphrase);
+  await guest.getByText("You created this board", { exact: true }).waitFor();
+  report.checks.recoveryFileResetsForgottenPassphrase = true;
   const fixtureKey = secret();
   for (let i = 0; i < 210; i++) {
     const fixture = makePost(board, "Older private fixture " + i, fixtureKey, {
@@ -305,6 +346,7 @@ try {
   const history = await historyContext.newPage();
   history.setDefaultTimeout(20000);
   await history.goto(boardURL);
+  await unlockBoard(history, devicePassphrase, "Create your identity");
   await history
     .getByRole("button", { name: "Load older posts", exact: true })
     .waitFor();
@@ -338,14 +380,18 @@ try {
   const fragmentPage = await fragmentContext.newPage();
   fragmentPage.setDefaultTimeout(20000);
   await fragmentPage.goto(boardURL);
+  await unlockBoard(fragmentPage, devicePassphrase, "Create your identity");
   await fragmentPage
     .getByRole("heading", { name: "Private October QA", exact: true })
     .waitFor();
-  const savedKey = await fragmentPage.evaluate(
-    (id) => localStorage.getItem(`cb_key_${id}`),
-    boardId,
-  );
-  assert(savedKey);
+  const savedVault = await fragmentPage.evaluate((id) => localStorage.getItem(`cb_vault_${id}`), boardId);
+  assert(savedVault);
+  assert.equal(await fragmentPage.evaluate((id) => localStorage.getItem(`cb_key_${id}`), boardId), null);
+  await fragmentPage.getByRole("button", { name: "Manage this device" }).click();
+  const savedDownload = fragmentPage.waitForEvent("download");
+  await fragmentPage.getByRole("button", { name: "Save recovery file" }).click();
+  const savedKey = JSON.parse(await readFile(await (await savedDownload).path(), "utf8")).key;
+  await fragmentPage.getByRole("dialog").getByRole("button", { name: "Close" }).click();
   const savedPubkey = getPublicKey(secret(savedKey));
   const candidate = secret();
   const candidateHex = hex(candidate);
@@ -353,6 +399,7 @@ try {
     name: "Use the identity from this recovery link?",
   });
   await fragmentPage.goto(`${boardURL}?view=fragment#key=${candidateHex}`);
+  await unlockBoard(fragmentPage);
   await recoveryDialog.waitFor();
   const savedBeforeSwitch = fragmentPage.waitForEvent("download");
   await recoveryDialog
@@ -373,10 +420,7 @@ try {
   assert.equal(new URL(fragmentPage.url()).hash, "");
   assert.equal(new URL(fragmentPage.url()).search, "?view=fragment");
   assert(
-    (await fragmentPage.evaluate(
-      (id) => localStorage.getItem(`cb_key_${id}`),
-      boardId,
-    )) === savedKey,
+    (await fragmentPage.evaluate((id) => localStorage.getItem(`cb_vault_${id}`), boardId)) === savedVault,
     "Unconfirmed fragment replaced the saved identity",
   );
   await recoveryDialog
@@ -398,6 +442,7 @@ try {
     `#key=${candidateHex}&key=${hex(secret())}`,
   ].entries()) {
     await fragmentPage.goto(`${boardURL}?case=${index}${fragment}`);
+    await unlockBoard(fragmentPage);
     await fragmentPage
       .getByRole("heading", { name: "Private October QA", exact: true })
       .waitFor();
@@ -405,25 +450,21 @@ try {
     assert.equal(new URL(fragmentPage.url()).hash, "");
     assert.equal(await recoveryDialog.count(), 0);
     assert(
-      (await fragmentPage.evaluate(
-        (id) => localStorage.getItem(`cb_key_${id}`),
-        boardId,
-      )) === savedKey,
+      (await fragmentPage.evaluate((id) => localStorage.getItem(`cb_vault_${id}`), boardId)) === savedVault,
       "Invalid fragment replaced the saved identity",
     );
   }
   await fragmentPage.goto(`${boardURL}#%6Bey=${candidateHex}`);
+  await unlockBoard(fragmentPage);
   await recoveryDialog.waitFor();
   await recoveryDialog
     .getByRole("button", { name: "Use recovery identity" })
     .click();
   assert(
-    (await fragmentPage.evaluate(
-      (id) => localStorage.getItem(`cb_key_${id}`),
-      boardId,
-    )) === candidateHex,
+    (await fragmentPage.evaluate((id) => localStorage.getItem(`cb_vault_${id}`), boardId)) !== savedVault,
     "Confirmed recovery identity was not saved",
   );
+  assert.equal(await fragmentPage.evaluate((id) => localStorage.getItem(`cb_key_${id}`), boardId), null);
   await createPost(
     fragmentPage,
     "Identity restored",
@@ -436,6 +477,7 @@ try {
   assert(restoredEvent && verifyEvent(restoredEvent));
   assert.equal(restoredEvent.pubkey, getPublicKey(candidate));
   await fragmentPage.reload();
+  await unlockBoard(fragmentPage);
   await createPost(
     fragmentPage,
     "Identity retained",
@@ -449,6 +491,29 @@ try {
   assert.equal(retainedEvent.pubkey, getPublicKey(candidate));
   report.checks.fragmentRecoveryRequiresConfirmation = true;
   await fragmentContext.close();
+  const migrationContext = await browser.newContext();
+  await isolateRelays(migrationContext, relay.url);
+  const migrationPage = await migrationContext.newPage();
+  migrationPage.setDefaultTimeout(20000);
+  const legacyKey = secret();
+  await migrationPage.goto(base);
+  await migrationPage.evaluate(({ id, key }) => localStorage.setItem(`cb_key_${id}`, key), {
+    id: boardId,
+    key: hex(legacyKey),
+  });
+  await migrationPage.goto(boardURL);
+  await unlockBoard(migrationPage, devicePassphrase, "Protect your saved identity");
+  assert.equal(await migrationPage.evaluate((id) => localStorage.getItem(`cb_key_${id}`), boardId), null);
+  const migratedVault = await migrationPage.evaluate((id) => localStorage.getItem(`cb_vault_${id}`), boardId);
+  assert(migratedVault && !migratedVault.includes(hex(legacyKey)));
+  await createPost(migrationPage, "Migrated identity", "The legacy author stayed the same.");
+  const migratedEvent = [...relay.events.values()].find((event) => event.content === "The legacy author stayed the same.");
+  assert(migratedEvent && verifyEvent(migratedEvent));
+  assert.equal(migratedEvent.pubkey, getPublicKey(legacyKey));
+  await migrationPage.reload();
+  await unlockBoard(migrationPage);
+  await migrationContext.close();
+  report.checks.legacyIdentityMigratedWithoutChangingAuthor = true;
   await page.goto(base + "/connect");
   assert.match(await page.locator("h1").innerText(), /assistant/);
   assert.match(await page.locator("main").innerText(), /stdio/);

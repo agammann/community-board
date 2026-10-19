@@ -8,8 +8,8 @@ A lightweight group noticeboard built on Nostr, with a mobile friendly website a
 
 ## Create a board
 
-1. Open the app and enter a board name. Add a description if useful.
-2. Select **Create board**, then **Share board** to copy the link.
+1. Open the app, enter a board name, and choose a device passphrase. Add a description if useful.
+2. Select **Create board**, unlock the new board with that passphrase, then **Share board** to copy the link.
 3. Send the link to your group. Everyone can post and reply.
 
 Use General, Question, Offer, or Event to organize posts. Nicknames are optional. New posts arrive live, and the connection panel shows which relays are reachable.
@@ -18,14 +18,14 @@ Reply drafts stay with their conversation while the page is open. Switching thre
 
 ## Run locally
 
-Install [Node.js 24 or newer](https://nodejs.org/en/download). For a versioned download, open [Releases](https://github.com/agammann/community-board/releases), download `community-board_1.0.0_source.zip`, check its SHA-256 against `SHA256SUMS`, and extract the whole folder. In that folder, run:
+Install [Node.js 24 or newer](https://nodejs.org/en/download). For a versioned download, open [Releases](https://github.com/agammann/community-board/releases), download `community-board_1.0.1_source.zip`, check its SHA-256 against `SHA256SUMS`, and extract the whole folder. In that folder, run:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-On Windows, `Get-FileHash ./community-board_1.0.0_source.zip -Algorithm SHA256` prints the checksum before extraction. On Linux use `sha256sum`; on macOS use `shasum -a 256`.
+On Windows, `Get-FileHash ./community-board_1.0.1_source.zip -Algorithm SHA256` prints the checksum before extraction. On Linux use `sha256sum`; on macOS use `shasum -a 256`.
 
 Developers can instead install [Git](https://git-scm.com/downloads) and clone the project:
 
@@ -65,7 +65,9 @@ Follow the [MCP setup guide](docs/MCP.md) for a copyable configuration, connecti
 
 ## Keep access to your device identity
 
-Each board has its own signing key on your device. On a board, open **Manage this device** and select **Save recovery file** before changing browsers or clearing browser data. To restore it, open the same board and select the saved file under **Restore from a recovery file**. Keep that file private.
+Each board has its own signing key on your device. Choose a passphrase when you create or first visit a board, then enter it again when you return. The browser saves only an encrypted key, salt, and nonce; it does not save your passphrase. Existing browser keys are encrypted when you next visit and choose a passphrase. Until then, older keys remain in their previous browser storage. On a board, open **Manage this device** and select **Save recovery file** before changing browsers or clearing browser data. To restore it, open the same board and select the saved file under **Restore from a recovery file**. If you forgot the passphrase on this device, use **Forgot passphrase? Use a recovery file** at the unlock prompt to replace the locked identity explicitly.
+
+Keep the passphrase and recovery file private. Recovery files contain the raw signing key; anyone who obtains one can sign as that identity. Losing both the passphrase and recovery file makes the identity unrecoverable. Encryption protects the saved key against disclosure of browser storage alone; code running in the unlocked page or a compromised device can still misuse the identity.
 
 Posts live on Nostr relays. A recovery file restores your signing identity; it does not back up or recover relay content. Save it separately from the checkout before an upgrade. If a post fails, keep its draft and retry; a connected relay can still reject writes. Relay availability and retention differ, so this app does not promise permanent storage. Board links and posted content are public. This version focuses on creating boards, posting, and replying; deletion and moderation are outside its scope.
 

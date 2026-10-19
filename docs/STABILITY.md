@@ -10,7 +10,7 @@ Posts and board links are public. Deletion, moderation, private boards and brows
 
 ## Recovery and upgrades
 
-Save each board's recovery file through **Manage this device** before clearing browser storage, moving to a different browser or upgrading. Restore the file on the same board to recover its signing identity. The MCP process stores a separate per-board identity in `mcp/.state/` by default; back up that directory or use a separate absolute `COMMUNITY_BOARD_STATE_DIR` before replacing its checkout. Restoring the matching file in the website lets the browser use that MCP identity.
+Save each board's recovery file through **Manage this device** before clearing browser storage, moving to a different browser or upgrading. The browser stores each board's key encrypted with a passphrase, which is required again on return. Previously saved cleartext browser keys are encrypted when that board is next opened and a passphrase is chosen. Restore a recovery file on the same board to recover its signing identity; at the unlock prompt, a recovery file can explicitly replace a locked key when the passphrase is forgotten. The MCP process stores a separate per-board identity in `mcp/.state/` by default; back up that directory or use a separate absolute `COMMUNITY_BOARD_STATE_DIR` before replacing its checkout. Restoring the matching file in the website lets the browser use that MCP identity.
 
 Recovery files contain private signing keys. They restore identity, not relay content. Browser recent-board lists remain local to that browser origin; opening the same board at a different origin does not transfer its stored keys automatically. Do not commit recovery files or send them in assistant messages.
 

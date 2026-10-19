@@ -10,8 +10,9 @@ export const Dialog = DialogPrimitive.Root;
 export function DialogContent({
   className,
   children,
+  showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
@@ -24,10 +25,12 @@ export function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-4 right-4 rounded opacity-70 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring">
-          <XIcon size={20} aria-hidden="true" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
+        {showCloseButton && (
+          <DialogPrimitive.Close className="absolute top-4 right-4 rounded opacity-70 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring">
+            <XIcon size={20} aria-hidden="true" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
   );

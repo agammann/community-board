@@ -44,6 +44,8 @@ import type { Board, Post } from "../lib/nostr-board";
 import type { Event } from "nostr-tools";
 import { clearSentReplyDraft, updateReplyDraft } from "../lib/reply-drafts";
 import type { ReplyDrafts } from "../lib/reply-drafts";
+import { identityStatus, openIdentity, recoverLockedIdentity, replaceIdentity } from "../lib/browser-identity";
+import type { IdentitySession } from "../lib/browser-identity";
 
 type Recent = { id: string; name: string };
 function remember(b: Board) {
@@ -61,15 +63,6 @@ function remember(b: Board) {
       ),
     );
   } catch {}
-}
-function identity(id: string) {
-  const name = `cb_key_${id}`;
-  let value = localStorage.getItem(name);
-  if (!value) {
-    value = hex(secret());
-    localStorage.setItem(name, value);
-  }
-  return secret(value);
 }
 function age(t: number) {
   const m = Math.max(0, Math.floor((Date.now() / 1000 - t) / 60));
@@ -99,6 +92,7 @@ function Logo() {
 export default function BoardApp({ boardId }: { boardId?: string }) {
   const pool = useRef<ReturnType<typeof newPool> | null>(null);
   const key = useRef<Uint8Array | null>(null);
+  const identitySession = useRef<IdentitySession | null>(null);
   const fragmentKey = useRef<{ boardId: string; key: Uint8Array } | null>(null);
   const events = useRef<Event[]>([]);
   const [board, setBoard] = useState<Board | null>(null),
@@ -118,6 +112,10 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     [share, setShare] = useState(false),
     [identityOpen, setIdentityOpen] = useState(false),
     [fragmentPrompt, setFragmentPrompt] = useState(false);
+  const [identityMode, setIdentityMode] = useState<"locked" | "protect" | "new" | null>(null),
+    [identityBusy, setIdentityBusy] = useState(false),
+    [identityError, setIdentityError] = useState(""),
+    [lockedRecovery, setLockedRecovery] = useState(false);
   const [title, setTitle] = useState(""),
     [body, setBody] = useState(""),
     [nickname, setNickname] = useState(""),
@@ -156,6 +154,9 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     }
   }
   useEffect(() => {
+    key.current = null;
+    identitySession.current = null;
+    fragmentKey.current = null;
     pool.current = newPool();
     let active = true;
     try {
@@ -188,16 +189,10 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
               notify("That recovery link is invalid. Your identity was kept.");
             }
           }
-          key.current = identity(boardId);
-          setPubkey(getPublicKey(key.current));
           const b = await loadBoard(pool.current!, boardId);
           if (!active) return;
           setBoard(b);
-          if (fragmentKey.current?.boardId === boardId) {
-            if (hex(fragmentKey.current.key) === hex(key.current))
-              fragmentKey.current = null;
-            else setFragmentPrompt(true);
-          }
+          setIdentityMode(identityStatus(localStorage, boardId));
           remember(b);
           await refresh(b);
         } catch (e) {
@@ -250,20 +245,93 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     const timer = setInterval(check, 5000);
     return () => clearInterval(timer);
   }, [board]);
+  function activateIdentity(session: IdentitySession) {
+    identitySession.current = session;
+    key.current = session.key;
+    setPubkey(getPublicKey(session.key));
+    setIdentityMode(null);
+    setLockedRecovery(false);
+    if (fragmentKey.current?.boardId === session.boardId) {
+      if (hex(fragmentKey.current.key) === hex(session.key)) fragmentKey.current = null;
+      else setFragmentPrompt(true);
+    }
+  }
+  async function unlockIdentity(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!boardId) return;
+    const form = e.currentTarget;
+    const passphrase = (form.elements.namedItem("identity-passphrase") as HTMLInputElement).value;
+    const confirm = (form.elements.namedItem("identity-confirm") as HTMLInputElement | null)?.value;
+    if (identityMode !== "locked" && passphrase !== confirm) {
+      setIdentityError("Passphrases do not match.");
+      return;
+    }
+    setIdentityBusy(true);
+    setIdentityError("");
+    try {
+      const session = await openIdentity(localStorage, boardId, passphrase);
+      activateIdentity(session);
+    } catch (error) {
+      setIdentityError((error as Error).message);
+    } finally {
+      (form.elements.namedItem("identity-passphrase") as HTMLInputElement).value = "";
+      const confirmation = form.elements.namedItem("identity-confirm") as HTMLInputElement | null;
+      if (confirmation) confirmation.value = "";
+      setIdentityBusy(false);
+    }
+  }
+  async function restoreLockedIdentity(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!boardId) return;
+    const form = e.currentTarget;
+    const passphrase = (form.elements.namedItem("identity-passphrase") as HTMLInputElement).value;
+    const confirm = (form.elements.namedItem("identity-confirm") as HTMLInputElement).value;
+    const file = (form.elements.namedItem("locked-recovery-file") as HTMLInputElement).files?.[0];
+    if (passphrase !== confirm) {
+      setIdentityError("Passphrases do not match.");
+      return;
+    }
+    setIdentityBusy(true);
+    setIdentityError("");
+    try {
+      if (!file || file.size > 4096) throw Error("Choose a valid recovery file.");
+      const recovered = parseRecovery(JSON.parse(await file.text()), boardId);
+      const session = await recoverLockedIdentity(localStorage, boardId, passphrase, recovered);
+      activateIdentity(session);
+    } catch (error) {
+      setIdentityError("Could not restore this board’s identity. Check the recovery file and passphrase.");
+      if ((error as Error).message.includes("older identity"))
+        setIdentityError((error as Error).message);
+    } finally {
+      (form.elements.namedItem("identity-passphrase") as HTMLInputElement).value = "";
+      (form.elements.namedItem("identity-confirm") as HTMLInputElement).value = "";
+      (form.elements.namedItem("locked-recovery-file") as HTMLInputElement).value = "";
+      setIdentityBusy(false);
+    }
+  }
   async function create(e: React.FormEvent) {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const passphrase = (form.elements.namedItem("create-passphrase") as HTMLInputElement).value;
+    const confirm = (form.elements.namedItem("create-confirm") as HTMLInputElement).value;
+    if (passphrase !== confirm) {
+      setError("Passphrases do not match.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
       const k = secret();
       const event = makeBoard(name, about, k);
-      localStorage.setItem(`cb_key_${event.id}`, hex(k));
+      await openIdentity(localStorage, event.id, passphrase, k);
       await publish(pool.current!, event);
       remember(parseBoard(event));
       location.assign(`/b/${event.id}`);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
+      (form.elements.namedItem("create-passphrase") as HTMLInputElement).value = "";
+      (form.elements.namedItem("create-confirm") as HTMLInputElement).value = "";
     }
   }
   async function post(e: React.FormEvent) {
@@ -354,7 +422,8 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
       const data = JSON.parse(await file.text());
       if (!board) throw Error("Open a board before restoring a recovery file.");
       const k = parseRecovery(data, board.id);
-      localStorage.setItem(`cb_key_${board.id}`, hex(k));
+      if (!identitySession.current) throw Error("Unlock this board before restoring an identity.");
+      await replaceIdentity(localStorage, identitySession.current, k);
       key.current = k;
       setPubkey(getPublicKey(k));
       setIdentityOpen(false);
@@ -367,11 +436,12 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
     fragmentKey.current = null;
     setFragmentPrompt(false);
   }
-  function confirmFragmentRecovery() {
+  async function confirmFragmentRecovery() {
     const recovery = fragmentKey.current;
     if (!board || !recovery || recovery.boardId !== board.id) return;
     try {
-      localStorage.setItem(`cb_key_${board.id}`, hex(recovery.key));
+      if (!identitySession.current) throw Error("Unlock this board before restoring an identity.");
+      await replaceIdentity(localStorage, identitySession.current, recovery.key);
       key.current = recovery.key;
       setPubkey(getPublicKey(recovery.key));
       dismissFragmentRecovery();
@@ -445,7 +515,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
             </div>
             <h2>Create your board</h2>
             <p className="subtle">
-              A name is all you need to get everyone together.
+              Give your board a name and protect its signing identity with a passphrase.
             </p>
             <form onSubmit={create}>
               <label htmlFor="board-name">Board name</label>
@@ -470,6 +540,27 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
                 rows={3}
                 maxLength={280}
               />
+              <label htmlFor="create-passphrase">Device passphrase</label>
+              <input
+                id="create-passphrase"
+                name="create-passphrase"
+                type="password"
+                minLength={12}
+                maxLength={1024}
+                required
+                autoComplete="new-password"
+              />
+              <label htmlFor="create-confirm">Confirm passphrase</label>
+              <input
+                id="create-confirm"
+                name="create-confirm"
+                type="password"
+                minLength={12}
+                maxLength={1024}
+                required
+                autoComplete="new-password"
+              />
+              <p className="subtle">Enter this passphrase when you return. Save a recovery file after creating your board in case you forget it.</p>
               <div className="starter-label">NEED A STARTING POINT?</div>
               <div className="suggestions">
                 {["Our neighborhood", "The weekend crew", "Study group"].map(
@@ -714,7 +805,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
                       <p>
                         {owner
                           ? "Board creator on this device."
-                          : "Your key is saved in this browser."}
+                          : "Your key is encrypted in this browser."}
                       </p>
                       <button
                         className="text-button"
@@ -939,6 +1030,71 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
           )}
         </DialogContent>
       </Dialog>
+      <Dialog open={identityMode !== null} onOpenChange={() => {}}>
+        <DialogContent
+          className="cb-dialog"
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onPointerDownOutside={(event) => event.preventDefault()}
+        >
+          <DialogTitle>
+            {lockedRecovery ? "Restore this board’s identity" : identityMode === "locked" ? "Unlock this board’s identity" :
+              identityMode === "protect" ? "Protect your saved identity" : "Create your identity"}
+          </DialogTitle>
+          <DialogDescription>
+            {lockedRecovery
+              ? "A recovery file can replace the locked identity on this device. If it holds a different key, the old identity cannot be recovered without its passphrase or another backup."
+              : identityMode === "locked"
+              ? "Enter your device passphrase to sign posts and replies. Your saved key is encrypted in this browser."
+              : identityMode === "protect"
+                ? "This browser has an older unprotected identity. Choose a passphrase to encrypt it without changing who you are on this board."
+                : "Choose a passphrase for this board’s new signing identity. You will enter it again when you return."}
+          </DialogDescription>
+          <form onSubmit={lockedRecovery ? restoreLockedIdentity : unlockIdentity}>
+            <label htmlFor="identity-passphrase">Device passphrase</label>
+            <input
+              id="identity-passphrase"
+              name="identity-passphrase"
+              type="password"
+              minLength={identityMode === "locked" && !lockedRecovery ? undefined : 12}
+              maxLength={1024}
+              autoComplete={identityMode === "locked" && !lockedRecovery ? "current-password" : "new-password"}
+              required
+            />
+            {(identityMode !== "locked" || lockedRecovery) && (
+              <>
+                <label htmlFor="identity-confirm">Confirm passphrase</label>
+                <input
+                  id="identity-confirm"
+                  name="identity-confirm"
+                  type="password"
+                  minLength={12}
+                  maxLength={1024}
+                  autoComplete="new-password"
+                  required
+                />
+              </>
+            )}
+            {lockedRecovery && (
+              <>
+                <label htmlFor="locked-recovery-file">Recovery file</label>
+                <input id="locked-recovery-file" name="locked-recovery-file" type="file" accept="application/json,.json" required />
+                <label><input type="checkbox" required /> I understand this can replace the old identity on this device.</label>
+              </>
+            )}
+            {identityError && <p className="error" role="alert">{identityError}</p>}
+            <button className="button primary full" disabled={identityBusy}>
+              {identityBusy ? "Working…" : lockedRecovery ? "Restore identity" : identityMode === "locked" ? "Unlock identity" : "Protect identity"}
+            </button>
+          </form>
+          {identityMode === "locked" && (
+            <button className="text-button" onClick={() => { setIdentityError(""); setLockedRecovery(!lockedRecovery); }}>
+              {lockedRecovery ? "Use passphrase instead" : "Forgot passphrase? Use a recovery file"}
+            </button>
+          )}
+          <p>Keep your passphrase and recovery file private. Without either one, this identity cannot be recovered.</p>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={fragmentPrompt}
         onOpenChange={(open) => {
@@ -975,7 +1131,7 @@ export default function BoardApp({ boardId }: { boardId?: string }) {
         <DialogContent className="cb-dialog">
           <DialogTitle>Your identity, on this device.</DialogTitle>
           <DialogDescription>
-            Each board has its own signing key saved in this browser.
+            Each board has its own signing key encrypted with your device passphrase in this browser.
           </DialogDescription>
           <p>
             Save a recovery file to keep access if you change devices or clear
