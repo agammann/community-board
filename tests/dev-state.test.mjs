@@ -10,18 +10,25 @@ import { createServer } from "vite";
 const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const marker = "SYNTHETIC_RECOVERY_MARKER_NOT_A_KEY";
 const boardFile = `${"a".repeat(64)}.json`;
+// Copy only known source inputs; never copy checkout-local state or rely on
+// Git metadata, because this test also runs in a downloaded source archive.
+const fixtureFiles = [
+  ".openai/hosting.json", "README.md", "app/board-app.tsx", "app/connect/page.tsx", "app/globals.css",
+  "build/sites-vite-plugin.ts", "client/board.tsx", "client/connect.tsx", "components/ui/dialog.tsx",
+  "connect/index.html", "index.html", "lib/browser-identity.ts", "lib/nostr-board.ts", "lib/reply-drafts.ts",
+  "lib/utils.ts", "package.json", "package-lock.json", "postcss.config.mjs", "public/favicon.svg",
+  "scripts/execution-profile.mjs", "scripts/local-link.mjs", "scripts/run-framework.mjs", "tsconfig.json",
+  "vite.config.ts", "worker/index.ts",
+];
 
 async function copyFixture(temp) {
   const fixture = path.join(temp, "source");
   await mkdir(fixture);
-  const files = execFileSync("git", ["ls-files", "-z"], { cwd: source, encoding: "utf8" }).split("\0").filter(Boolean);
-  for (const name of files) {
+  for (const name of fixtureFiles) {
     const target = path.join(fixture, name);
     await mkdir(path.dirname(target), { recursive: true });
     await cp(path.join(source, name), target);
   }
-  // The guard module may be untracked while a developer is testing a change.
-  await cp(path.join(source, "scripts", "local-link.mjs"), path.join(fixture, "scripts", "local-link.mjs"));
   await symlink(path.join(source, "node_modules"), path.join(fixture, "node_modules"), "junction");
   return fixture;
 }

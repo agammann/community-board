@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Protect local recovery files during development and preserve existing identities across upgrades.
+- Refresh compatible dependencies and strengthen isolated verification.
+
 ## 1.0.1
 
 - Encrypt per-board browser signing identities with a device passphrase instead of saving raw keys in browser storage.

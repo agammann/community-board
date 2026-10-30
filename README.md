@@ -18,14 +18,14 @@ Reply drafts stay with their conversation while the page is open. Switching thre
 
 ## Run locally
 
-Install [Node.js 24 or newer](https://nodejs.org/en/download). For a versioned download, open [Releases](https://github.com/agammann/community-board/releases), download `community-board_1.0.1_source.zip`, check its SHA-256 against `SHA256SUMS`, and extract the whole folder. In that folder, run:
+Install [Node.js 24 or newer](https://nodejs.org/en/download). For a versioned download, open [Releases](https://github.com/agammann/community-board/releases), download `community-board_1.0.2_source.zip`, check its SHA-256 against `SHA256SUMS`, and extract the whole folder. In that folder, run:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-On Windows, `Get-FileHash ./community-board_1.0.1_source.zip -Algorithm SHA256` prints the checksum before extraction. On Linux use `sha256sum`; on macOS use `shasum -a 256`.
+On Windows, `Get-FileHash ./community-board_1.0.2_source.zip -Algorithm SHA256` prints the checksum before extraction. On Linux use `sha256sum`; on macOS use `shasum -a 256`.
 
 Developers can instead install [Git](https://git-scm.com/downloads) and clone the project:
 
