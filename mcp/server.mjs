@@ -3,8 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { stateDirectory } from "./state-dir.mjs";
 import {
   newPool,
   secret,
@@ -23,9 +23,7 @@ import {
 const base =
   process.env.COMMUNITY_BOARD_URL ||
   "https://community-board.alx21.chatgpt.site";
-const stateDir =
-  process.env.COMMUNITY_BOARD_STATE_DIR ||
-  fileURLToPath(new URL("./.state/", import.meta.url));
+const stateDir = await stateDirectory({ override: process.env.COMMUNITY_BOARD_STATE_DIR });
 await mkdir(stateDir, { recursive: true, mode: 0o700 });
 const pool = newPool();
 const server = new McpServer(

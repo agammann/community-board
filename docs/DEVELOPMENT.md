@@ -42,7 +42,7 @@ Keep the server running while using the site. Stop it with Ctrl+C.
 | `npm run audit:json`         | Print the complete current npm audit as JSON            |
 | `npm run package:release`    | Package a clean committed source tree and checksums     |
 
-`npm start` requires a successful build first. Rebuild after editing source when testing the production preview. It runs a local Worker and does not deploy anything. The development website and MCP server are independent processes.
+`npm start` requires a successful build first. Rebuild after editing source when testing the production preview. It runs a local Worker and does not deploy anything. The development website and MCP server are independent processes. Keep recovery files outside the checkout: the build refuses board-ID-shaped recovery JSON in `public/` and public links that resolve outside that directory, so private state is not copied into published assets. Safe links within `public/` remain supported.
 
 Tests generate temporary keys and test files, but do not publish to public relays. Testing posting manually in the website or through MCP does publish real events, including when the website runs on localhost.
 
