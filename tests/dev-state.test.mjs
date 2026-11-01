@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { access, cp, mkdir, mkdtemp, rm, rmdir, symlink, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, realpath, rm, rmdir, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,7 +34,8 @@ async function copyFixture(temp) {
 }
 
 test("development serving does not expose synthetic MCP recovery files", { timeout: 120_000 }, async (t) => {
-  const temp = await mkdtemp(path.join(os.tmpdir(), "community-board-dev-guard-"));
+  const tempRoot = await realpath(os.tmpdir());
+  const temp = await mkdtemp(path.join(tempRoot, "community-board-dev-guard-"));
   let server;
   const savedEnv = { ...process.env };
   try {
@@ -97,14 +98,15 @@ test("development serving does not expose synthetic MCP recovery files", { timeo
     if (server) await server.close();
     for (const key of Object.keys(process.env)) if (!(key in savedEnv)) delete process.env[key];
     Object.assign(process.env, savedEnv);
-    const relative = path.relative(os.tmpdir(), temp);
+    const relative = path.relative(tempRoot, temp);
     assert(relative && !relative.startsWith("..") && !path.isAbsolute(relative));
     await rm(temp, { recursive: true, force: true, maxRetries: 8, retryDelay: 500 });
   }
 });
 
 test("production build refuses to copy synthetic recovery files from public", { timeout: 90_000 }, async () => {
-  const temp = await mkdtemp(path.join(os.tmpdir(), "community-board-build-guard-"));
+  const tempRoot = await realpath(os.tmpdir());
+  const temp = await mkdtemp(path.join(tempRoot, "community-board-build-guard-"));
   try {
     const fixture = await copyFixture(temp);
     const custom = path.join(fixture, "public", "custom-state");
@@ -138,7 +140,7 @@ test("production build refuses to copy synthetic recovery files from public", { 
     await symlink(safe, path.join(fixture, "public", "safe-link"), "junction");
     execFileSync(process.execPath, ["scripts/run-framework.mjs", "build"], { cwd: fixture, env, stdio: "pipe", timeout: 30000 });
   } finally {
-    const relative = path.relative(os.tmpdir(), temp);
+    const relative = path.relative(tempRoot, temp);
     assert(relative && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
     await rm(temp, { recursive: true, force: true, maxRetries: 8, retryDelay: 500 });
   }
