@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { access, cp, mkdir, mkdtemp, rm, rmdir, symlink, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -68,7 +68,17 @@ test("development serving does not expose synthetic MCP recovery files", { timeo
     process.env.MINIFLARE_REGISTRY_PATH = path.join(temp, "miniflare");
     delete process.env.CLOUDFLARE_API_TOKEN;
     delete process.env.CLOUDFLARE_API_KEY;
-    server = await createServer({ root: fixture, configFile: path.join(fixture, "vite.config.ts"), server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
+    server = await createServer({
+      root: fixture,
+      configFile: path.join(fixture, "vite.config.ts"),
+      server: {
+        host: "127.0.0.1",
+        port: 0,
+        // Windows CI can abort inside libuv when watching junctions in this fixture.
+        ...(process.platform === "win32" ? { watch: { useFsEvents: false, usePolling: true } } : {}),
+      },
+      logLevel: "silent",
+    });
     await server.listen();
     const port = server.httpServer.address().port;
     const base = `http://127.0.0.1:${port}`;
@@ -119,7 +129,8 @@ test("production build refuses to copy synthetic recovery files from public", { 
       (error) => /outside the allowed/i.test(String(error.stderr)),
       "build must refuse an outside public directory link before copying",
     );
-    await rmdir(outsideLink);
+    await rm(outsideLink);
+    await access(outside);
     const safe = path.join(fixture, "public", "safe-assets");
     await mkdir(safe);
     await writeFile(path.join(safe, "ordinary.txt"), "public fixture");

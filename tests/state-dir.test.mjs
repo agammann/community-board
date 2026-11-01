@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, rmdir, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, rmdir, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -13,7 +13,7 @@ test("new defaults stay outside the checkout and existing identities keep their 
   try {
     await mkdir(root, { recursive: true });
     await mkdir(home, { recursive: true });
-    assert.equal(await stateDirectory({ legacy, home, root }), path.join(home, ".community-board", "mcp"));
+    assert.equal(await stateDirectory({ legacy, home, root }), path.join(await realpath(home), ".community-board", "mcp"));
     await assert.rejects(stateDirectory({ legacy, home: root, root }), /inside the checkout/);
     await mkdir(legacy, { recursive: true });
     assert.equal(await stateDirectory({ legacy, home, root }), legacy);
