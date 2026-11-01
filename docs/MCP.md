@@ -46,7 +46,7 @@ On Windows, use forward slashes in JSON, for example:
 
 The JSON key layout depends on the client. Use its local server settings if it does not accept this format. If the client cannot find `node`, replace the command with the full path to the Node executable. `where.exe node` on Windows, or `command -v node` on macOS and Linux, shows that path.
 
-Save the configuration and restart or reconnect the server in your client. The process can start from any working directory because its default state path is resolved relative to the server file.
+Save the configuration and restart or reconnect the server in your client. The process can start from any working directory because its default state path does not depend on it.
 
 ## 3. Verify the connection
 
@@ -73,9 +73,9 @@ Add environment variables in your client's server configuration only when you ne
 | Variable                    | Default                                      | Purpose                                     |
 | --------------------------- | -------------------------------------------- | ------------------------------------------- |
 | `COMMUNITY_BOARD_URL`       | `https://community-board.alx21.chatgpt.site` | Website origin used in returned board links |
-| `COMMUNITY_BOARD_STATE_DIR` | `mcp/.state/` beside the server              | Directory containing private device keys    |
+| `COMMUNITY_BOARD_STATE_DIR` | `~/.community-board/mcp/` for new installations | Directory containing private device keys |
 
-For local web development, set `COMMUNITY_BOARD_URL` to the URL printed by `npm run dev`. Use an absolute path when setting `COMMUNITY_BOARD_STATE_DIR`.
+For local web development, set `COMMUNITY_BOARD_URL` to the URL printed by `npm run dev`. Use an absolute private path outside the checkout when setting `COMMUNITY_BOARD_STATE_DIR`. Existing installations with `mcp/.state/` keep using that directory so their identities do not change. To move it, stop the MCP server, copy the directory to a private location outside the checkout, configure that location, and verify recovery before removing the old copy. Keep any other recovery copies outside directories served by a development server.
 
 Example server entry with optional settings:
 
@@ -85,7 +85,7 @@ Example server entry with optional settings:
   "args": ["C:/Projects/community-board/mcp/server.mjs"],
   "env": {
     "COMMUNITY_BOARD_URL": "http://localhost:5173",
-    "COMMUNITY_BOARD_STATE_DIR": "C:/Projects/community-board/mcp/.state"
+    "COMMUNITY_BOARD_STATE_DIR": "C:/Users/example/Private/community-board-keys"
   }
 }
 ```
@@ -94,7 +94,7 @@ The localhost URL is an example. Match the actual development server address.
 
 ## Use the same identity in the browser
 
-The MCP server saves a separate key for each board in its state directory. That directory is ignored by Git. `create_board` returns the path in `identity_recovery_file`.
+The MCP server saves a separate key for each board in its state directory. `create_board` returns the path in `identity_recovery_file`. Keep the entire directory private and out of source control.
 
 1. Open the returned board link in the website.
 2. Select **Manage this device**.

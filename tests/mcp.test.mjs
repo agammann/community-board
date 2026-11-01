@@ -26,11 +26,27 @@ test("MCP handshake exposes the scoped tools and rejects invalid board IDs befor
       "relay_status",
       "reply_to_post",
     ]);
+    const byName = Object.fromEntries(tools.map((entry) => [entry.name, entry.inputSchema]));
+    assert.equal(byName.create_board.type, "object");
+    assert.equal(byName.create_board.properties.name.type, "string");
+    assert.equal(byName.create_board.properties.name.maxLength, 70);
+    assert(byName.create_board.required.includes("name"));
+    assert.equal(byName.create_post.properties.body.maxLength, 4000);
+    assert(byName.create_post.required.includes("body"));
+    assert(byName.reply_to_post.required.includes("post_id"));
     const result = await client.callTool({
       name: "read_board",
       arguments: { board_id: "invalid" },
     });
     assert.equal(result.isError, true);
+    for (const args of [{ name: " " }, { name: "x".repeat(71) }, { name: 4 }]) {
+      const invalid = await client.callTool({ name: "create_board", arguments: args });
+      assert.equal(invalid.isError, true);
+    }
+    const oversized = await client.callTool({ name: "create_post", arguments: { board_id: "a".repeat(64), body: "x".repeat(4001) } });
+    assert.equal(oversized.isError, true);
+    const invalidCategory = await client.callTool({ name: "create_post", arguments: { board_id: "a".repeat(64), body: "hello", category: "not-a-category" } });
+    assert.equal(invalidCategory.isError, true);
   } finally {
     await client.close();
     await rm(state, { recursive: true, force: true });

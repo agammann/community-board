@@ -27,6 +27,35 @@ const report = {
   layouts: [],
 };
 const devicePassphrase = "private-browser-test-passphrase";
+const guards = [];
+async function guardContext(context, relayUrl) {
+  const blocked = { http: 0, ws: 0 };
+  const appOrigin = new URL(base).origin;
+  const relayOrigin = new URL(relayUrl).origin;
+  guards.push(blocked);
+  await context.route("**/*", async (route) => {
+    if (new URL(route.request().url()).origin === appOrigin) await route.continue();
+    else { blocked.http++; await route.abort(); }
+  });
+  await context.routeWebSocket("**/*", (ws) => {
+    if (new URL(ws.url()).origin === relayOrigin) ws.connectToServer();
+    else { blocked.ws++; ws.close(); }
+  });
+  const guardPage = await context.newPage();
+  await guardPage.goto("https://example.invalid/").catch(() => {});
+  await guardPage.close();
+  const guardWsPage = await context.newPage();
+  await guardWsPage.setContent("<!doctype html><title>guard</title>");
+  await guardWsPage.evaluate(() => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(Error("WebSocket guard timed out")), 5000);
+    const ws = new WebSocket("wss://example.invalid/");
+    ws.onclose = () => { clearTimeout(timer); resolve(); };
+    ws.onerror = () => {};
+  }));
+  await guardWsPage.close();
+  assert.deepEqual(blocked, { http: 1, ws: 1 });
+  await isolateRelays(context, relayUrl);
+}
 const save = () =>
   writeFile(out + "/report.json", JSON.stringify(report, null, 2));
 const close = () =>
@@ -135,6 +164,7 @@ try {
   delete env.DEBUG_FILE;
   browser = await chromium.launch({
     headless: true,
+    args: ["--disable-background-networking"],
     env,
     ...(process.env.COMMUNITY_BOARD_BROWSER_EXECUTABLE
       ? { executablePath: process.env.COMMUNITY_BOARD_BROWSER_EXECUTABLE }
@@ -144,8 +174,9 @@ try {
   context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     acceptDownloads: true,
+    serviceWorkers: "block",
   });
-  await isolateRelays(context, relay.url);
+  await guardContext(context, relay.url);
   page = await context.newPage();
   page.setDefaultTimeout(20000);
   page.on("pageerror", (e) => report.errors.push(e.message));
@@ -257,8 +288,8 @@ try {
   await page.getByRole("button", { name: /All posts/ }).click();
   assert.equal(await page.locator(".post-card").count(), 2);
   report.checks.categoryFilter = true;
-  const guestContext = await browser.newContext();
-  await isolateRelays(guestContext, relay.url);
+  const guestContext = await browser.newContext({ serviceWorkers: "block" });
+  await guardContext(guestContext, relay.url);
   const guest = await guestContext.newPage();
   guest.setDefaultTimeout(20000);
   await guest.goto(boardURL);
@@ -341,8 +372,8 @@ try {
       ),
     );
   }
-  const historyContext = await browser.newContext();
-  await isolateRelays(historyContext, relay.url);
+  const historyContext = await browser.newContext({ serviceWorkers: "block" });
+  await guardContext(historyContext, relay.url);
   const history = await historyContext.newPage();
   history.setDefaultTimeout(20000);
   await history.goto(boardURL);
@@ -375,8 +406,8 @@ try {
       fullPage: true,
     });
   }
-  const fragmentContext = await browser.newContext();
-  await isolateRelays(fragmentContext, relay.url);
+  const fragmentContext = await browser.newContext({ serviceWorkers: "block" });
+  await guardContext(fragmentContext, relay.url);
   const fragmentPage = await fragmentContext.newPage();
   fragmentPage.setDefaultTimeout(20000);
   await fragmentPage.goto(boardURL);
@@ -491,8 +522,8 @@ try {
   assert.equal(retainedEvent.pubkey, getPublicKey(candidate));
   report.checks.fragmentRecoveryRequiresConfirmation = true;
   await fragmentContext.close();
-  const migrationContext = await browser.newContext();
-  await isolateRelays(migrationContext, relay.url);
+  const migrationContext = await browser.newContext({ serviceWorkers: "block" });
+  await guardContext(migrationContext, relay.url);
   const migrationPage = await migrationContext.newPage();
   migrationPage.setDefaultTimeout(20000);
   const legacyKey = secret();
@@ -525,6 +556,9 @@ try {
   report.checks.setupAndInvalidLink = true;
   assert.equal(report.errors.length, 0);
   assert.deepEqual(report.consoleErrors, []);
+  assert.equal(guards.length, 5);
+  assert(guards.every((guard) => guard.http === 1 && guard.ws === 1), "Unexpected nonloopback page traffic was blocked");
+  report.checks.pageTrafficGuards = { contexts: guards.length, syntheticHttp: 5, syntheticWebSockets: 5, unexpected: 0 };
   report.outcome = "pass";
 } catch (e) {
   report.outcome = "failure";

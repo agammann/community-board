@@ -76,8 +76,8 @@ npm ci`}</pre>
       </ul>
       <h2>Keep the same identity across devices</h2>
       <p>
-        The server saves a key for each board in its local{" "}
-        <code>mcp/.state/</code> directory. Creating a board returns the
+        The server saves a key for each board in a private local directory.
+        Creating a board returns the
         recovery file’s path. To use that identity in the browser, open the
         board, select <strong>Manage this device</strong>, and restore the
         matching file. Keep recovery files private.
