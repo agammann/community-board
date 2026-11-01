@@ -69,17 +69,7 @@ test("development serving does not expose synthetic MCP recovery files", { timeo
     process.env.MINIFLARE_REGISTRY_PATH = path.join(temp, "miniflare");
     delete process.env.CLOUDFLARE_API_TOKEN;
     delete process.env.CLOUDFLARE_API_KEY;
-    server = await createServer({
-      root: fixture,
-      configFile: path.join(fixture, "vite.config.ts"),
-      server: {
-        host: "127.0.0.1",
-        port: 0,
-        // This response-only fixture does not need file watching.
-        watch: null,
-      },
-      logLevel: "silent",
-    });
+    server = await createServer({ root: fixture, configFile: path.join(fixture, "vite.config.ts"), server: { host: "127.0.0.1", port: 0 }, logLevel: "silent" });
     await server.listen();
     const port = server.httpServer.address().port;
     const base = `http://127.0.0.1:${port}`;
