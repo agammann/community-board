@@ -81,3 +81,36 @@ test("configured import and accessibility rules detect invalid and accept valid 
     assert.equal(check(valid).length, 0, `${rule} valid`);
   }
 });
+
+test("configured lint scopes and rule severities remain stable", async () => {
+  const { ESLint } = await import("eslint");
+  const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.equal(pkg.scripts.lint, "eslint app client components lib mcp tests worker --max-warnings=0");
+  const engine = new ESLint();
+  for (const file of ["app/board-app.tsx", "client/board.tsx", "components/ui/dialog.tsx", "lib/utils.ts", "mcp/server.mjs", "tests/eslint-compat.test.mjs", "worker/index.ts"]) {
+    assert.equal(await engine.isPathIgnored(file), false, file);
+    const config = await engine.calculateConfigForFile(file);
+    for (const name of Object.keys(react.rules)) assert.equal(config.rules[`react/${name}`][0], 2, `${file}: react/${name}`);
+    for (const name of ["import/no-anonymous-default-export", "jsx-a11y/alt-text", "jsx-a11y/aria-props", "jsx-a11y/aria-proptypes", "jsx-a11y/aria-unsupported-elements", "jsx-a11y/role-has-required-aria-props", "jsx-a11y/role-supports-aria-props"]) assert.equal(config.rules[name][0], 1, `${file}: ${name}`);
+    for (const name of ["react/no-unknown-property", "react/react-in-jsx-scope", "react/prop-types", "react/jsx-no-target-blank"]) assert.equal(config.rules[name][0], 0, `${file}: ${name}`);
+  }
+  for (const file of ["dist/file.ts", ".sites-runtime/file.ts", ".wrangler/file.ts"]) assert.equal(await engine.isPathIgnored(file), true, file);
+});
+
+test("import and accessibility warnings respect inline controls", () => {
+  const cases = [
+    ["import/no-anonymous-default-export", "export default () => null;"],
+    ["jsx-a11y/alt-text", "export const A = () => <Image src='x' />;"],
+    ["jsx-a11y/aria-props", "export const A = () => <div aria-fake='x' />;"],
+    ["jsx-a11y/aria-proptypes", "export const A = () => <div aria-hidden='maybe' />;"],
+    ["jsx-a11y/aria-unsupported-elements", "export const A = () => <meta aria-label='x' />;"],
+    ["jsx-a11y/role-has-required-aria-props", "export const A = () => <div role='checkbox' />;"],
+    ["jsx-a11y/role-supports-aria-props", "export const A = () => <div role='button' aria-valuenow='3' />;"],
+  ];
+  for (const [rule, source] of cases) {
+    const check = (prefix) => linter.verify(prefix + source, projectConfig, { filename: "app/lint-fixture.tsx" }).filter((m) => m.ruleId === rule);
+    assert.equal(check("").length, 1, rule);
+    assert.equal(check(`/* eslint ${rule}: off */\n`).length, 0, rule);
+    assert.equal(check(`// eslint-disable-next-line ${rule}\n`).length, 0, rule);
+  }
+});
