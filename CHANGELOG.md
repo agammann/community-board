@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+
+- Update the locked Hono dependencies to include security fixes for request routing and the Node.js server adapter.
+- Include Hono 4.13.18 and @hono/node-server 2.1.8 in the source archive, verified through a fresh installation and the production browser and MCP checks.
+
 ## 1.0.2
 
 - Protect local recovery files during development and preserve existing identities across upgrades.
