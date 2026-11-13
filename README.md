@@ -38,6 +38,8 @@ npm run dev
 
 Open the local URL printed by the server. Keep the terminal running while using the app; press Ctrl+C to stop it. The website needs internet access to reach Nostr relays. It does not require environment variables or a separate database.
 
+On minimal Linux installations, install the system CA certificate bundle before starting the local worker (for example, Debian's `ca-certificates` package).
+
 To check the project and preview a production build:
 
 ```sh
