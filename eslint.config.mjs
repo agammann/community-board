@@ -1,10 +1,24 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import react from "eslint-plugin-react";
+import react from "./vendor/eslint-plugin-react/index.cjs";
 import reactHooks from "eslint-plugin-react-hooks";
-import importPlugin from "eslint-plugin-import";
-import jsxA11y from "eslint-plugin-jsx-a11y";
+import importPlugin from "eslint-plugin-import-x";
+import jsxA11yUpstream from "eslint-plugin-jsx-a11y-x";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+
+// The former JSX a11y plugin accepted a no-op options object for these rules.
+// The maintained successor rejects that syntax, so preserve the prior schema.
+const legacyObjectOptions = ["aria-props", "aria-proptypes", "aria-unsupported-elements", "role-has-required-aria-props", "role-supports-aria-props"];
+const jsxA11y = {
+  ...jsxA11yUpstream,
+  rules: {
+    ...jsxA11yUpstream.rules,
+    ...Object.fromEntries(legacyObjectOptions.map((name) => [name, {
+      ...jsxA11yUpstream.rules[name],
+      meta: { ...jsxA11yUpstream.rules[name].meta, schema: [{ type: "object", properties: {} }] },
+    }])),
+  },
+};
 
 export default defineConfig([
   {
