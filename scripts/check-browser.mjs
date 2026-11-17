@@ -17,7 +17,6 @@ await mkdir(out, { recursive: true });
 const processLog = [];
 let base, server, relay, browser, context, page;
 const report = {
-  fallback: "Browser plugin not available",
   started: new Date().toISOString(),
   method:
     "Built production app under real local workerd. Actual signed events, WebSocket subscriptions and relay acknowledgments on isolated loopback relay; only relay destinations redirected, no public posts.",

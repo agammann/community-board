@@ -6,8 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import metadata from "../package.json" with { type: "json" };
 
-test("MCP handshake exposes the scoped tools and rejects invalid board IDs before network access", async () => {
+test("MCP handshake exposes the scoped tools and rejects invalid board IDs before network access", async (t) => {
   const state = await mkdtemp(path.join(tmpdir(), "community-board-test-"));
   const client = new Client({ name: "contract-check", version: "1.0.0" });
   const transport = new StdioClientTransport({
@@ -18,6 +19,20 @@ test("MCP handshake exposes the scoped tools and rejects invalid board IDs befor
   });
   try {
     await client.connect(transport);
+    await t.test("reports the source package version", () => {
+      assert.equal(client.getServerVersion().version, metadata.version);
+    });
+    await t.test("bounds input elements before schema validation", async () => {
+      const args = { board_id: "invalid" };
+      for (let i = 0; i < 31; i++) args[`extra${i}`] = i;
+      const atLimit = await client.callTool({ name: "read_board", arguments: args });
+      assert.equal(atLimit.isError, true);
+      assert.match(atLimit.content[0].text, /Input validation error/);
+      args.extra31 = 31;
+      const overLimit = await client.callTool({ name: "read_board", arguments: args });
+      assert.equal(overLimit.isError, true);
+      assert.match(overLimit.content[0].text, /more than the maximum of 32 elements/);
+    });
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map((t) => t.name).sort(), [
       "create_board",
