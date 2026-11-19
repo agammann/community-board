@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.4 (unreleased)
+## 1.0.4
 
 - Update Vite to 8.3.8 and Rolldown to 1.2.19 for the [upstream development-server advisory](https://github.com/vitejs/vite/security/advisories/GHSA-p4f5-76q4-ffq7).
 - Bound local stdio tool arguments to 32 object members or array elements before schema validation. The five tools use flat inputs with at most five properties.
