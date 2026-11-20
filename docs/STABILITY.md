@@ -24,7 +24,11 @@ The unpublished 1.0.4 source candidate passed frozen installation, lint, all 37 
 
 The production browser journey passed in Chromium 153.0.8010.12 against a private loopback relay. It covered board creation, posts, separate reply drafts, rejected writes, delayed acknowledgments, identity recovery and pagination to 213 root posts. Page and console errors were empty. The actual SDK stdio journey passed all five tools, write retries, process restart and exact identity recovery. These checks published no public events.
 
-The required full audit still fails with 12 high entries from the [Picomatch advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf), which lists no patched version. Version 1.0.4 remains unpublished. The available release remains 1.0.3, and the existing hosted website is unchanged.
+At the November 17 check, the required full audit reported 12 high entries from the Picomatch advisory, which listed no patched version at the time.
+
+### November 19, 2026 dependency audit recheck
+
+GitHub withdrew the Picomatch advisory on November 18. The required dependency audit reported zero advisories on the candidate lockfile when rerun on November 19. The source candidate remains a draft. [Advisory record](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
 
 ### October 7, 2026 checks
 

@@ -6,7 +6,7 @@
 
 A lightweight group noticeboard built on Nostr, with a mobile friendly website and an optional local MCP server.
 
-Version 1.0.4 is an unpublished source candidate. The available release remains 1.0.3. The candidate retains the required dependency audit, which currently blocks publication on the unresolved Picomatch advisory.
+Version 1.0.4 is an unpublished source candidate. Version 1.0.3 is the available release. See the [verification record](docs/STABILITY.md#verification) for the candidate checks.
 
 ## Create a board
 
