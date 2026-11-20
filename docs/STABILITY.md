@@ -18,6 +18,20 @@ Publishing succeeds when at least one relay acknowledges the event. Connection s
 
 ## Verification
 
+### November 17, 2026 checks
+
+The unpublished 1.0.4 source candidate passed frozen installation, lint, all 37 Node checks, TypeScript checks and the production build on Windows with Node 24.19.0 and bundled npm 11.17.0. Vite 8.3.8 and Rolldown 1.2.19 include the upstream development-server fix. The local stdio server reports the package version and applies a 32-element argument ceiling. Small flat invalid inputs verified the exact ceiling before schema validation. All documented tools use at most five scalar properties.
+
+The production browser journey passed in Chromium 153.0.8010.12 against a private loopback relay. It covered board creation, posts, separate reply drafts, rejected writes, delayed acknowledgments, identity recovery and pagination to 213 root posts. Page and console errors were empty. The actual SDK stdio journey passed all five tools, write retries, process restart and exact identity recovery. These checks published no public events.
+
+At the November 17 check, the required full audit reported 12 high entries from the Picomatch advisory, which listed no patched version at the time.
+
+### November 19, 2026 dependency audit recheck
+
+GitHub withdrew the Picomatch advisory on November 18. The required dependency audit reported zero advisories on the candidate lockfile when rerun on November 19. The source candidate remains a draft. [Advisory record](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+
+### October 7, 2026 checks
+
 On October 7, 2026 (UTC), the prepared v1 source passed locked installation, lint, all 14 tests, TypeScript checks and a production build on Windows with Node 24.19.0. The tests include an actual local WebSocket disconnect and reconnect. A complete npm audit reported zero findings at the time of that check.
 
 The built production app ran under real local workerd in Chrome 155.0.8059.12 against a private WebSocket relay. The journey created a board, posted in two categories, kept separate reply drafts, preserved drafts after rejection and during delayed acknowledgments, filtered posts, received a live post from a second browser identity, shared a link without a recovery key, exported/restored the exact identity across reload, paginated to all 213 signed root posts, and rendered assistant setup and invalid links. Desktop and 390/320-pixel layouts were inspected. No page exceptions, console errors or document-level horizontal overflow were observed.

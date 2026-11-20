@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Update Vite to 8.3.8 and Rolldown to 1.2.19 for the [upstream development-server advisory](https://github.com/vitejs/vite/security/advisories/GHSA-p4f5-76q4-ffq7).
+- Bound local stdio tool arguments to 32 object members or array elements before schema validation. The five tools use flat inputs with at most five properties.
+- Report the source package version in the MCP handshake and verify the input boundary through the actual SDK client.
+
 ## 1.0.3
 
 - Update the locked Hono dependencies to include security fixes for request routing and the Node.js server adapter.

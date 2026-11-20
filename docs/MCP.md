@@ -4,6 +4,8 @@
 
 Community Board exposes a local MCP server over stdio. It connects directly to Nostr relays and uses the same event format as the website. There is no hosted MCP endpoint to paste into an HTTP connector field.
 
+The 1.0.4 source candidate reports its package version during initialization and limits tool arguments to 32 object members or array elements before schema validation. All five tools use flat scalar inputs with at most five properties. This is a defensive limit for the local stdio process.
+
 ## 1. Install the project
 
 Install Node.js 24 or newer and Git, then run:

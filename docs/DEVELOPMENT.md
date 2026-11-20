@@ -64,6 +64,8 @@ On Linux, use `npx playwright install --with-deps chromium` when browser system 
 
 The MCP check starts the actual server from another working directory, exercises all five tools, checks rejected writes and retries, restarts with the same local identity, rejects a recovery file for another board, and restores the exact original key. It removes its own temporary key directory afterward.
 
+The MCP contract test checks the package version reported at initialization and the 32-element input ceiling. Small invalid board inputs exercise the ceiling before schema validation without reaching a relay. The stdio server has no HTTP transport.
+
 ## Build on the project
 
 - Add a category in `CATEGORIES` and update the protocol documentation; keep the default category and existing event tags readable.
