@@ -22,7 +22,7 @@
     "audit:json": "npm audit --json"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@radix-ui/react-dialog": "1.1.23",
     "clsx": "2.1.1",
     "lucide-react": "1.72.0",
