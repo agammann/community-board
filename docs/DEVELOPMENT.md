@@ -107,6 +107,8 @@ The checkout's `.sites-runtime/` directory is ignored. Clean clones default to t
 
 Use npm consistently. Commit `package.json` and `package-lock.json` together after changes, then run `npm run check`. The final audit queries the npm registry and fails on any reported advisory; a successful audit is a dated dependency check, not a guarantee about all application behavior. Do not commit `node_modules`, `dist`, local state, or recovery files.
 
+`npm run typecheck` uses the native TypeScript compiler through the `typescript-native` alias. ESLint uses the classic `typescript` package, which supplies the JavaScript API required by `typescript-eslint`.
+
 ## Troubleshooting
 
 | Symptom                                         | What to do                                                                                       |
